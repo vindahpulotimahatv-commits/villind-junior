@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><title>Overlay skor vMix</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+html,body{margin:0;background:transparent;overflow:hidden;font-family:"Barlow Condensed","Arial Narrow",Arial,sans-serif}
+#bar{position:fixed;left:40px;bottom:40px;display:none;align-items:stretch;height:84px;color:#fff;font-weight:800;text-transform:uppercase;box-shadow:0 4px 18px rgba(0,0,0,.45);border-radius:10px;overflow:hidden}
+#bar.on{display:flex}
+.cat{background:#F6B83F;color:#101923;padding:0 18px;display:flex;align-items:center;font-size:34px}
+.tm{background:#123D38;padding:0 26px;display:flex;align-items:center;font-size:40px;min-width:230px;justify-content:center;white-space:nowrap}
+.sc{background:#101923;color:#F6B83F;padding:0 22px;display:flex;align-items:center;font-size:56px;min-width:60px;justify-content:center}
+.ck{background:#174C46;padding:0 20px;display:flex;flex-direction:column;justify-content:center;align-items:center;font-size:36px;line-height:1;min-width:110px}
+.ck small{font-size:18px;color:#F6B83F;margin-top:4px}
+</style></head><body>
+<div id="bar"><div class="cat" id="c"></div><div class="tm" id="a"></div><div class="sc" id="sa"></div><div class="sc" id="sb">0</div><div class="tm" id="b"></div><div class="ck"><span id="t">00:00</span><small id="s"></small></div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="js/config.js"></script>
+<script src="js/core.js"></script>
+<script>
+// Tambahkan ?kategori=U11 atau ?kategori=U15 pada alamat untuk memilih satu kategori.
+var V = window.VJT, cat = new URLSearchParams(location.search).get('kategori'), cur = null;
+var $ = function (i) { return document.getElementById(i); };
+function load() {
+  if (!V.sb) return;
+  V.sb.from('matches').select('*').in("status", ["LIVE", "HALF TIME"]).order('kickoff').then(function (r) {
+    var d = (r.data || []).filter(function (m) { return !cat || m.category === cat; });
+    cur = d[0] || null; draw();
+  });
+}
+function draw() {
+  $('bar').classList.toggle('on', !!cur);
+  if (!cur) return;
+  $('c').textContent = V.CATEGORY_LABEL[cur.category] || cur.category;
+  $('a').textContent = cur.team_a; $('b').textContent = cur.team_b;
+  $('sa').textContent = cur.score_a; $('sb').textContent = cur.score_b;
+  $('s').textContent = cur.status === 'HALF TIME' ? 'HALF TIME' : 'BABAK ' + cur.period;
+  $('t').textContent = V.fmtClock(V.elapsed(cur, Date.now()));
+}
+setInterval(function () { if (cur) $('t').textContent = V.fmtClock(V.elapsed(cur, Date.now())); }, 1000);
+load(); setInterval(load, 5000);
+if (V.sb) V.sb.channel('vjt-overlay').on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, load).subscribe();
+</script></body></html>
