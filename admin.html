@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Panitia - Villind Junior Tournament</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#123D38">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body style="padding-bottom:24px">
+<header class="top"><div class="wrap"><img src="icons/icon-192.png" alt=""><div class="nm disp">Panel Panitia</div><a class="livebtn" href="index.html" style="background:#fff;color:#123D38">Ke website</a></div></header>
+<main class="wrap" style="padding-top:16px">
+  <div id="msg"></div>
+  <div id="nocfg" class="note hide">Supabase belum diisi. Ikuti README.md Langkah 4 dulu.</div>
+
+  <form id="login" class="panel hide">
+    <h3>Masuk</h3>
+    <label for="em">Email</label><input id="em" type="email" autocomplete="username" required>
+    <label for="pw">Kata sandi</label><input id="pw" type="password" autocomplete="current-password" required>
+    <div class="btns"><button class="btn dark" type="submit" style="grid-column:1/-1">Masuk</button></div>
+  </form>
+
+  <div id="app" class="hide">
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0">Pilih pertandingan</h3><button class="btn" id="out" style="min-height:36px;padding:6px 12px">Keluar</button></div>
+      <label for="sel">Pertandingan</label><select id="sel"></select>
+    </div>
+
+    <div id="ctl" class="hide">
+      <div class="board">
+        <div id="b-meta"></div>
+        <div class="grid"><div class="tm" id="b-a"></div><div class="big" id="b-score">0-0</div><div class="tm" id="b-b"></div></div>
+        <div class="clock" id="b-clock">00:00</div><div id="b-status" style="margin-top:6px;font-weight:700"></div>
+      </div>
+      <div class="panel">
+        <h3>Gol</h3>
+        <label for="pl">Nama pencetak gol (boleh kosong)</label><input id="pl" placeholder="Nama panggilan atau nomor punggung">
+        <label for="mn">Menit gol (kosong = otomatis dari timer)</label><input id="mn" type="number" min="0" max="120" inputmode="numeric">
+        <div class="btns">
+          <button class="btn goal" id="ga"></button><button class="btn goal" id="gb"></button>
+          <button class="btn red" id="undo" style="grid-column:1/-1">Batalkan gol terakhir</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Jalannya pertandingan</h3>
+        <div class="btns">
+          <button class="btn dark" id="st-start">Mulai (Babak 1)</button>
+          <button class="btn dark" id="st-ht">Half Time</button>
+          <button class="btn dark" id="st-2">Mulai Babak 2</button>
+          <button class="btn red" id="st-ft">Akhiri (Full Time)</button>
+          <button class="btn" id="st-pp">Tunda</button>
+          <button class="btn" id="st-reset">Kembalikan ke Akan Datang</button>
+        </div>
+      </div>
+      <div class="panel"><h3>Riwayat</h3><div id="hist"></div></div>
+    </div>
+
+    <div class="panel">
+      <h3>Tambah pertandingan (Semi Final / Final)</h3>
+      <label for="n-cat">Kategori</label><select id="n-cat"><option value="U11">U-11</option><option value="U15">U-15</option></select>
+      <label for="n-ph">Babak</label><select id="n-ph"><option>Semi Final</option><option>Final</option><option>Perebutan Juara 3</option></select>
+      <label for="n-a">Tim A</label><input id="n-a"><label for="n-b">Tim B</label><input id="n-b">
+      <label for="n-t">Tanggal dan jam (WIB)</label><input id="n-t" type="datetime-local">
+      <div class="btns"><button class="btn dark" id="n-add" style="grid-column:1/-1">Simpan pertandingan</button></div>
+    </div>
+
+    <div class="panel">
+      <h3>Pengaturan website</h3>
+      <label for="s-yt">Tautan YouTube Live (atau ID video)</label><input id="s-yt" placeholder="https://www.youtube.com/watch?v=...">
+      <label for="s-sa">Tautan Saweria</label><input id="s-sa" placeholder="https://saweria.co/...">
+      <label for="s-wa">Nomor WhatsApp panitia</label><input id="s-wa" placeholder="62812xxxxxxx" inputmode="tel">
+      <div class="btns"><button class="btn dark" id="s-save" style="grid-column:1/-1">Simpan pengaturan</button></div>
+    </div>
+  </div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="js/config.js"></script>
+<script src="js/core.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>
