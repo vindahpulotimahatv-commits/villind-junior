@@ -13,8 +13,13 @@
   sb.auth.getSession().then(function (r) { user = r.data.session && r.data.session.user; show(!!user); if (user) boot(); });
   $('login').addEventListener('submit', function (e) {
     e.preventDefault();
-    sb.auth.signInWithPassword({ email: $('em').value, password: $('pw').value }).then(function (r) {
-      if (r.error) return msg('Email atau kata sandi salah.');
+    sb.auth.signInWithPassword({ email: $('em').value.trim(), password: $('pw').value }).then(function (r) {
+      if (r.error) {
+        var t = (r.error.message || '').toLowerCase();
+        if (t.indexOf('not confirmed') > -1) return msg('Email belum dikonfirmasi. Di Supabase: Authentication, Users, klik akun ini, lalu pilih Confirm email (atau buat ulang akun dengan Auto Confirm User dicentang).');
+        if (t.indexOf('invalid login') > -1) return msg('Email belum terdaftar di Supabase, atau kata sandi salah. Cek di Supabase: Authentication, Users.');
+        return msg('Gagal masuk: ' + r.error.message);
+      }
       user = r.data.user; msg(''); show(true); boot();
     });
   });
