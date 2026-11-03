@@ -33,7 +33,7 @@
     var started = m.status !== 'UPCOMING' && m.status !== 'POSTPONED' && m.status !== 'CANCELLED';
     var mid = started ? '<div class="score">' + m.score_a + ' - ' + m.score_b + '</div>' : '<div class="score when">' + V.fmtTime(m.kickoff).replace(' WIB', '') + '</div>';
     var clock = m.status === 'LIVE' ? ' <b data-clock="' + esc(m.id) + '">' + V.fmtClock(V.elapsed(m, Date.now())) + '</b>' : '';
-    return '<a class="card" href="#/match/' + esc(m.id) + '"><div class="meta"><span><span class="chip alt" style="background:#e8eeec">' +
+    return '<a class="card" href="#/match/' + esc(m.id) + '"><div class="meta"><span><span class="chip category-chip">' +
       (V.CATEGORY_LABEL[m.category] || m.category) + '</span> ' + esc(phaseLabel(m)) + clock + '</span>' + pill(m) + '</div>' +
       '<div class="row"><div class="t">' + esc(m.team_a) + '</div>' + mid + '<div class="t">' + esc(m.team_b) + '</div></div></a>';
   }
@@ -53,7 +53,8 @@
     var started = m.status !== 'UPCOMING' && m.status !== 'POSTPONED' && m.status !== 'CANCELLED';
     var center = started ? '<div class="home-score">' + m.score_a + '<i>:</i>' + m.score_b + '</div>' :
       '<div class="home-time"><b>' + V.fmtTime(m.kickoff).replace(' WIB','') + '</b><small>' + V.fmtDate(m.kickoff) + '</small></div>';
-    var status = liveMode ? '<span class="home-live-tag">● LIVE</span>' : '<span class="home-age">' + (V.CATEGORY_LABEL[m.category] || m.category) + '</span>';
+    var category = V.CATEGORY_LABEL[m.category] || m.category || 'JUNIOR';
+    var status = liveMode ? '<span class="home-live-tag">● LIVE</span>' : '<span class="home-age">' + esc(category) + '</span>';
     return '<a class="home-match" href="#/match/' + esc(m.id) + '">' +
       '<div class="home-match-top">' + status + '<span>' + esc(m.phase || 'Babak Grup') + '</span></div>' +
       '<div class="home-match-grid"><div class="home-team">' + miniShield(m.team_a,'') + '<b>' + esc(m.team_a) + '</b></div>' +
@@ -66,19 +67,21 @@
     var lv = live();
     var up = state.matches.filter(function (m) { return m.status === 'UPCOMING' && new Date(m.kickoff).getTime() > now - 3600e3; }).slice(0, 4);
     var done = state.matches.filter(function (m) { return m.status === 'FULL TIME'; }).slice(-3).reverse();
-    var cd = now < OPENING ? '<div class="countdown-panel"><div class="countdown-title"><span>▦</span> TURNAMEN DIMULAI DALAM</div><div class="count" id="cd"></div></div>' : '';
+    var cd = now < OPENING ? '<div class="countdown-panel"><div class="countdown-title"><span>🏆</span> TURNAMEN DIMULAI DALAM</div><div class="count" id="cd"></div></div>' : '';
     var sa = state.settings.saweria_url;
     var liveBlock = lv.length ? lv.slice(0,1).map(function(m){return homeMatch(m,true);}).join('') :
-      '<div class="home-empty"><span class="empty-live-icon">◉</span><b>BELUM ADA PERTANDINGAN LIVE</b><small>Jadwal pertandingan akan tampil di sini saat dimulai</small></div>';
+      '<div class="home-empty"><span class="empty-live-icon">◉</span><b>BELUM ADA PERTANDINGAN LIVE</b><small>Jadwal pertandingan akan tampil di sini saat pertandingan dimulai</small></div>';
     var nextBlock = up.length ? homeMatch(up[0],false) : '<div class="home-empty">Belum ada jadwal pertandingan berikutnya</div>';
     view.innerHTML =
       '<div class="home-shell">' +
-        '<section class="hero-villind"><div class="hero-art"></div><div class="hero-shade"></div><div class="hero-content">' +
-          '<div class="hero-kicker"><span>OFFICIAL MATCH CENTER</span><span class="hero-year">2026</span></div>' +
+        '<section class="hero-villind">' +
+          '<div class="hero-art"></div><div class="hero-shade"></div>' +
+          '<div class="hero-brandline"><img src="icons/villind-shield.jpg" alt="Logo VILLIND"><div><b>VILLIND JUNIOR</b><strong>TOURNAMENT</strong><small>DEVELOPING YOUNG TALENT<br>BUILDING FUTURE CHAMPIONS</small></div><span class="hero-season">2026</span></div>' +
+          '<div class="hero-content"><div class="hero-kicker"><span>OFFICIAL MATCH CENTER</span><span class="hero-live-mini">● TOURNAMENT</span></div>' +
           '<h1>VILLIND <em>CUP 2</em></h1><div class="hero-welcome">Selamat Datang<br><b>dan Selamat Bertanding!</b></div>' +
           '<div class="hero-categories"><span>U-11</span><i></i><span>U-15</span></div>' +
-          '<p class="hero-motto">Junjung Tinggi Sportifitas · Raihlah Prestasi</p>' +
-        '</div></section>' +
+          '<p class="hero-motto">Junjung Tinggi Sportifitas · Raihlah Prestasi</p></div>' +
+        '</section>' +
         '<div class="home-content">' +
           '<div class="home-event-line"><span>🏆</span><div><b>VILLIND JUNIOR TOURNAMENT</b><small>Villa Indah Pulo Timaha · 2026</small></div><span class="event-live-dot">●</span></div>' +
           cd +
@@ -88,7 +91,7 @@
           '</section>' +
           '<section class="home-section"><div class="home-section-heading"><h2><span class="heading-icon">▦</span> PERTANDINGAN SELANJUTNYA</h2><a href="#/jadwal">LIHAT SEMUA ›</a></div>' +
             nextBlock + '</section>' +
-          '<div class="home-two-cards"><a href="#/klasemen" class="quick-card"><span>📊</span><b>KLASEMEN</b><small>U-11 & U-15</small></a><a href="#/info" class="quick-card"><span>⚽</span><b>INFO TURNAMEN</b><small>Berita & informasi</small></a></div>' +
+          '<div class="home-two-cards"><a href="#/klasemen" class="quick-card"><span>🏆</span><b>KLASEMEN</b><small>U-11 & U-15</small></a><a href="#/info" class="quick-card"><span>📰</span><b>BERITA TURNAMEN</b><small>Informasi & dokumentasi</small></a></div>' +
           (done.length ? '<section class="home-section"><div class="home-section-heading"><h2>HASIL TERBARU</h2><a href="#/jadwal">SEMUA ›</a></div>' + done.map(function(m){return homeMatch(m,false);}).join('') + '</section>' : '') +
           (sa ? '<section class="home-section support-section"><div><span>💛</span><h2>DUKUNG TURNAMEN</h2><p>Bantu kemeriahan Villind Junior Tournament.</p></div><a class="support-btn" href="' + esc(sa) + '" target="_blank" rel="noopener">DUKUNG VIA SAWERIA ↗</a></section>' : '') +
         '</div></div>';

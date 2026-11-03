@@ -82,3 +82,70 @@ input,select{width:100%;font:inherit;padding:11px;border:1px solid #5076a4;borde
 .msg{padding:10px;border-radius:10px;margin:10px 0;font-weight:700}.msg.err{background:#fde6e5;color:#8d1d1a}.msg.ok{background:#e1f4e8;color:#14532d}.hide{display:none!important}
 @media(min-width:650px){.hero-villind{min-height:540px}.hero-art{background-size:cover}.hero-content{padding:0 28px 24px}.home-content{padding-left:22px;padding-right:22px}}
 @media(max-width:380px){header.top .wrap{gap:7px}.brand small{font-size:.43rem}.hero-villind{min-height:410px}.hero-content{padding-left:14px;padding-right:14px}.hero-welcome{font-size:1.25rem}.action-primary,.action-secondary{font-size:.9rem;padding:7px}.team-crest{width:47px;height:53px}}
+
+/* Fix: category labels U-11 / U-15 on fixture cards */
+.card .category-chip,
+.card .chip.category-chip {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  background:linear-gradient(135deg,#ffe16a,#f5ad08) !important;
+  color:#07172d !important;
+  border:1px solid #fff0a8;
+  border-radius:6px;
+  padding:3px 9px;
+  font-weight:900;
+  font-size:.72rem;
+  line-height:1.2;
+  text-shadow:none;
+  white-space:nowrap;
+}
+
+/* VILLIND premium mobile visual pass — original layout, logo retained */
+.hero-villind{position:relative;min-height:470px;overflow:hidden;background:#04152b;border-bottom:2px solid #e8b52c}
+.hero-art{position:absolute;inset:0;background-image:url("../icons/villind-hero-art.jpg");background-size:cover;background-position:center 42%;opacity:.98}
+.hero-shade{position:absolute;inset:0;background:
+ linear-gradient(90deg,rgba(3,13,29,.96) 0%,rgba(3,13,29,.82) 38%,rgba(3,13,29,.18) 100%),
+ linear-gradient(180deg,rgba(2,10,23,.18) 0%,rgba(2,10,23,.05) 42%,#061326 100%)}
+.hero-brandline{position:absolute;z-index:2;top:18px;left:16px;right:16px;display:flex;align-items:center;gap:11px}
+.hero-brandline img{width:66px;height:78px;object-fit:contain;filter:drop-shadow(0 3px 8px #000);border-radius:0;border:0;box-shadow:none}
+.hero-brandline div{display:flex;flex-direction:column;min-width:0;text-shadow:0 2px 8px #000}
+.hero-brandline b,.hero-brandline strong{font-family:"Barlow Condensed";font-size:1.4rem;line-height:.92;font-weight:900;font-style:italic}
+.hero-brandline strong{color:#ffc629;font-size:1.55rem}
+.hero-brandline small{font-size:.57rem;line-height:1.12;font-weight:800;color:#e7f0ff;letter-spacing:.045em;margin-top:5px}
+.hero-season{margin-left:auto;align-self:flex-start;color:#ffcf38;font-family:"Barlow Condensed";font-size:1.15rem;font-weight:900;text-shadow:0 2px 7px #000}
+.hero-content{position:absolute;z-index:2;left:0;right:0;bottom:0;padding:0 17px 18px;text-shadow:0 2px 9px #000}
+.hero-kicker{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;font-size:.62rem;font-weight:900;letter-spacing:.08em;color:#fff}
+.hero-kicker span:first-child{background:#07172dd9;border:1px solid #ffc62988;padding:5px 8px;border-radius:4px}
+.hero-live-mini{color:#ffda6b}
+.hero-content h1{font-size:clamp(2.6rem,12vw,4rem);font-weight:900;color:#fff;line-height:.9;text-transform:uppercase}
+.hero-content h1 em{font-style:normal;color:#ffc629;-webkit-text-stroke:.6px #fff;text-shadow:0 3px 0 #704800,0 5px 15px #000}
+.hero-welcome{font-family:"Barlow Condensed";font-size:1.35rem;font-weight:900;color:#ffc629;line-height:1.02;margin-top:7px;text-transform:uppercase}
+.hero-welcome b{color:#fff;font-size:1.08rem}
+.hero-categories{display:flex;align-items:center;gap:14px;margin-top:11px;background:linear-gradient(110deg,#ffe16a,#f2a900);color:#071326;width:max-content;padding:5px 18px;border-radius:7px;box-shadow:0 3px 14px #0009;font-weight:900;font-size:1.02rem;border:1px solid #fff2b1}
+.hero-categories i{height:16px;width:2px;background:#071326}
+.hero-motto{font-family:"Barlow Condensed";font-size:.78rem;font-weight:900;color:#ffe27b;margin-top:9px;text-transform:uppercase;letter-spacing:.045em}
+.home-content{background:linear-gradient(180deg,#061326,#08203b 55%,#030b18)}
+.home-event-line{border-bottom-color:#d5a62b66}
+.home-actions{gap:9px}
+.action-primary,.action-secondary{min-height:62px;border-radius:14px}
+.action-primary{background:linear-gradient(135deg,#ffe36b,#efa900);box-shadow:0 4px 14px #e4a40033}
+.action-secondary{background:linear-gradient(135deg,#0c2c50,#03101f);border:2px solid #d9a82d;box-shadow:inset 0 0 0 1px #ffffff22,0 4px 14px #0008}
+.home-live-wrap{border:1px solid #d5a62b;border-radius:16px;overflow:hidden;box-shadow:0 5px 18px #0007}
+.home-match{background:linear-gradient(145deg,#123b66,#061326);border:1px solid #d4a52d;border-radius:15px}
+.home-match-top{border-bottom-color:#ffffff2b}
+.home-score{font-size:3rem;color:#fff;text-shadow:0 2px 12px #000}
+.home-time{background:#07172d;border:1px solid #d4a52d;border-radius:9px;padding:5px}
+.home-time b{color:#ffdb67}
+.home-team b{color:#fff}
+.team-crest{border:2px solid #f3c449;box-shadow:0 4px 10px #0008}
+.home-empty{background:linear-gradient(145deg,#102f52,#061326)}
+.home-section-heading h2{font-size:1.22rem}
+.quick-card{border-color:#b98a2c;background:linear-gradient(140deg,#123b66,#061326)}
+.quick-card b{color:#ffcf47}
+@media(max-width:380px){
+ .hero-villind{min-height:445px}.hero-brandline{top:14px;left:12px;right:12px;gap:8px}
+ .hero-brandline img{width:57px;height:68px}.hero-brandline b{font-size:1.22rem}.hero-brandline strong{font-size:1.35rem}
+ .hero-content{padding-left:13px;padding-right:13px}.hero-content h1{font-size:2.55rem}
+ .hero-welcome{font-size:1.2rem}.hero-motto{font-size:.7rem}
+}
