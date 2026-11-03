@@ -2,6 +2,24 @@
   var CATEGORY_LABEL = { U11: 'U-11', U15: 'U-15' };
   var STATUS_LABEL = { UPCOMING: 'AKAN DATANG', LIVE: 'LIVE', 'HALF TIME': 'HALF TIME', 'FULL TIME': 'FULL TIME', POSTPONED: 'DITUNDA', CANCELLED: 'DIBATALKAN' };
 
+  // HASIL DRAWING (resmi). Ubah di sini jika drawing berubah.
+  var GROUPS = {
+    U11: { A: ['RT 005/021', 'RT 009/021', 'RT 008/021', 'Villind A', 'RT 011/021'],
+           B: ['Villind B', 'RT 003/021', 'RT 004/021', 'RT 012/021', 'Villipo RW.14'] },
+    U15: { A: ['RT 009/021', 'RT 006/021', 'RT 004/021', 'RT 011/021'],
+           B: ['RT 012/021', 'RT 007/021', 'RT 008/021', 'RT 013/021'] }
+  };
+  function groupOf(cat, team) {
+    var g = GROUPS[cat] || {};
+    return Object.keys(g).filter(function (k) { return g[k].indexOf(team) > -1; })[0] || null;
+  }
+  // Grup sebuah pertandingan (hanya babak grup, dan hanya jika kedua tim satu grup).
+  function matchGroup(m) {
+    if (m.phase !== 'Babak Grup') return null;
+    var a = groupOf(m.category, m.team_a), b = groupOf(m.category, m.team_b);
+    return a && a === b ? a : null;
+  }
+
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -34,23 +52,25 @@
     else if ((m = s.match(/(?:youtu\.be\/|\/live\/|\/embed\/)([\w-]{11})/))) id = m[1];
     return id ? 'https://www.youtube.com/embed/' + id : null;
   }
-  // Klasemen: poin, selisih gol, gol memasukkan, lalu nama. Hanya pertandingan FULL TIME.
-  function standings(matches, cat) {
+  // Klasemen per grup: poin, selisih gol, gol memasukkan, lalu urutan drawing.
+  // Hanya pertandingan Babak Grup berstatus FULL TIME yang dihitung.
+  function standings(matches, cat, grp) {
+    var order = (GROUPS[cat] && GROUPS[cat][grp]) || [];
     var t = {};
-    function row(n) { return t[n] || (t[n] = { team: n, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 }); }
-    matches.filter(function (m) { return m.category === cat; }).forEach(function (m) {
-      var a = row(m.team_a), b = row(m.team_b);
-      if (m.status !== 'FULL TIME') return;
+    order.forEach(function (n) { t[n] = { team: n, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 }; });
+    matches.forEach(function (m) {
+      if (m.category !== cat || m.status !== 'FULL TIME' || matchGroup(m) !== grp) return;
+      var a = t[m.team_a], b = t[m.team_b];
       a.p++; b.p++; a.gf += m.score_a; a.ga += m.score_b; b.gf += m.score_b; b.ga += m.score_a;
       if (m.score_a > m.score_b) { a.w++; b.l++; a.pts += 3; }
       else if (m.score_a < m.score_b) { b.w++; a.l++; b.pts += 3; }
       else { a.d++; b.d++; a.pts++; b.pts++; }
     });
-    return Object.keys(t).map(function (k) { t[k].gd = t[k].gf - t[k].ga; return t[k]; })
-      .sort(function (x, y) { return y.pts - x.pts || y.gd - x.gd || y.gf - x.gf || x.team.localeCompare(y.team); });
+    return order.map(function (k, i) { t[k].gd = t[k].gf - t[k].ga; t[k].ord = i; return t[k]; })
+      .sort(function (x, y) { return y.pts - x.pts || y.gd - x.gd || y.gf - x.gf || x.ord - y.ord; });
   }
 
-  var api = { CATEGORY_LABEL: CATEGORY_LABEL, STATUS_LABEL: STATUS_LABEL, esc: esc, elapsed: elapsed, fmtClock: fmtClock,
+  var api = { GROUPS: GROUPS, groupOf: groupOf, matchGroup: matchGroup, CATEGORY_LABEL: CATEGORY_LABEL, STATUS_LABEL: STATUS_LABEL, esc: esc, elapsed: elapsed, fmtClock: fmtClock,
     fmtDate: fmtDate, fmtTime: fmtTime, dayKey: dayKey, youtubeEmbed: youtubeEmbed, standings: standings };
 
   if (typeof window !== 'undefined') {

@@ -32,7 +32,7 @@
       matches = r.data;
       var prev = $('sel').value;
       $('sel').innerHTML = '<option value="">- pilih -</option>' + matches.map(function (m) {
-        return '<option value="' + m.id + '">' + V.fmtDate(m.kickoff).replace(/^\w+, /, '') + ' ' + V.fmtTime(m.kickoff).replace(' WIB', '') + ' | ' + V.CATEGORY_LABEL[m.category] + ' | ' + esc(m.team_a) + ' vs ' + esc(m.team_b) + ' | ' + m.status + '</option>';
+        return '<option value="' + m.id + '">' + V.fmtDate(m.kickoff).replace(/^\w+, /, '') + ' ' + V.fmtTime(m.kickoff).replace(' WIB', '') + ' | ' + V.CATEGORY_LABEL[m.category] + (V.matchGroup(m) ? ' Grup ' + V.matchGroup(m) : '') + ' | ' + esc(m.team_a) + ' vs ' + esc(m.team_b) + ' | ' + m.status + '</option>';
       }).join('');
       if (keep || prev) $('sel').value = prev;
       pick();
@@ -42,7 +42,7 @@
     cur = matches.filter(function (m) { return m.id === $('sel').value; })[0] || null;
     $('ctl').classList.toggle('hide', !cur);
     if (!cur) return;
-    $('b-meta').textContent = V.CATEGORY_LABEL[cur.category] + ' - ' + cur.phase;
+    $('b-meta').textContent = V.CATEGORY_LABEL[cur.category] + ' - ' + (V.matchGroup(cur) ? 'Grup ' + V.matchGroup(cur) : cur.phase);
     $('b-a').textContent = cur.team_a; $('b-b').textContent = cur.team_b;
     $('ga').textContent = '+1 ' + cur.team_a; $('gb').textContent = '+1 ' + cur.team_b;
     $('b-score').textContent = cur.score_a + '-' + cur.score_b;

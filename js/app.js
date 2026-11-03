@@ -28,12 +28,13 @@
     var c = m.status === 'LIVE' ? 'LIVE' : m.status === 'HALF TIME' ? 'HT' : m.status === 'FULL TIME' ? 'FT' : '';
     return '<span class="pill ' + c + '">' + (V.STATUS_LABEL[m.status] || m.status) + '</span>';
   }
+  function phaseLabel(m) { var g = V.matchGroup(m); return g ? 'Grup ' + g : m.phase; }
   function card(m) {
     var started = m.status !== 'UPCOMING' && m.status !== 'POSTPONED' && m.status !== 'CANCELLED';
     var mid = started ? '<div class="score">' + m.score_a + ' - ' + m.score_b + '</div>' : '<div class="score when">' + V.fmtTime(m.kickoff).replace(' WIB', '') + '</div>';
     var clock = m.status === 'LIVE' ? ' <b data-clock="' + esc(m.id) + '">' + V.fmtClock(V.elapsed(m, Date.now())) + '</b>' : '';
     return '<a class="card" href="#/match/' + esc(m.id) + '"><div class="meta"><span><span class="chip alt" style="background:#e8eeec">' +
-      (V.CATEGORY_LABEL[m.category] || m.category) + '</span> ' + esc(m.phase) + clock + '</span>' + pill(m) + '</div>' +
+      (V.CATEGORY_LABEL[m.category] || m.category) + '</span> ' + esc(phaseLabel(m)) + clock + '</span>' + pill(m) + '</div>' +
       '<div class="row"><div class="t">' + esc(m.team_a) + '</div>' + mid + '<div class="t">' + esc(m.team_b) + '</div></div></a>';
   }
   function demoNote() {
@@ -87,15 +88,17 @@
   function klasemen() {
     var cats = state.cat === 'ALL' ? ['U11', 'U15'] : [state.cat];
     var html = cats.map(function (c) {
-      var rows = V.standings(state.matches, c);
-      return '<h3 class="disp" style="font-size:1.3rem;margin:12px 0 6px;color:var(--g2)">Klasemen ' + V.CATEGORY_LABEL[c] + '</h3>' +
-        '<table class="st"><thead><tr><th>#</th><th>Tim</th><th>Main</th><th>M</th><th>S</th><th>K</th><th>GM</th><th>GK</th><th>SG</th><th>Poin</th></tr></thead><tbody>' +
-        rows.map(function (r, i) {
-          return '<tr><td>' + (i + 1) + '</td><td>' + esc(r.team) + '</td><td>' + r.p + '</td><td>' + r.w + '</td><td>' + r.d + '</td><td>' + r.l + '</td><td>' + r.gf + '</td><td>' + r.ga + '</td><td>' + r.gd + '</td><td>' + r.pts + '</td></tr>';
-        }).join('') + '</tbody></table>';
+      return ['A', 'B'].map(function (g) {
+        var rows = V.standings(state.matches, c, g);
+        return '<h3 class="disp" style="font-size:1.3rem;margin:14px 0 6px;color:var(--gold)">' + V.CATEGORY_LABEL[c] + ' - Grup ' + g + '</h3>' +
+          '<table class="st"><thead><tr><th>#</th><th>Tim</th><th>Main</th><th>M</th><th>S</th><th>K</th><th>GM</th><th>GK</th><th>SG</th><th>Poin</th></tr></thead><tbody>' +
+          rows.map(function (r, i) {
+            return '<tr><td>' + (i + 1) + '</td><td>' + esc(r.team) + '</td><td>' + r.p + '</td><td>' + r.w + '</td><td>' + r.d + '</td><td>' + r.l + '</td><td>' + r.gf + '</td><td>' + r.ga + '</td><td>' + r.gd + '</td><td>' + r.pts + '</td></tr>';
+          }).join('') + '</tbody></table>';
+      }).join('');
     }).join('');
     view.innerHTML = '<section><div class="wrap">' + demoNote() + '<h2>Klasemen</h2>' + tabs() + html +
-      '<p style="margin-top:10px;font-size:.8rem;color:var(--mut)">Urutan: poin, selisih gol (SG), lalu gol memasukkan (GM). Hanya pertandingan berstatus Full Time yang dihitung. Menang 3 poin, seri 1 poin.</p></div></section>';
+      '<p style="margin-top:10px;font-size:.8rem;color:var(--mut)">Urutan: poin, selisih gol (SG), lalu gol memasukkan (GM). Hanya pertandingan Babak Grup berstatus Full Time yang dihitung. Menang 3 poin, seri 1 poin.</p></div></section>';
   }
   function livePage() {
     var lv = live(), yt = V.youtubeEmbed(state.settings.youtube_url);
@@ -109,7 +112,7 @@
     if (!m) { view.innerHTML = '<section><div class="wrap"><div class="empty">Pertandingan tidak ditemukan</div></div></section>'; return; }
     var started = m.status !== 'UPCOMING';
     view.innerHTML = '<section><div class="wrap"><a href="#/jadwal" style="font-weight:700;color:var(--g2)">&larr; Kembali ke jadwal</a><div style="height:10px"></div>' +
-      '<div class="board"><div>' + (V.CATEGORY_LABEL[m.category] || m.category) + ' &middot; ' + esc(m.phase) + '</div>' +
+      '<div class="board"><div>' + (V.CATEGORY_LABEL[m.category] || m.category) + ' &middot; ' + esc(phaseLabel(m)) + '</div>' +
       '<div class="grid"><div class="tm">' + esc(m.team_a) + '</div><div class="big">' + (started ? m.score_a + '-' + m.score_b : 'VS') + '</div><div class="tm">' + esc(m.team_b) + '</div></div>' +
       (m.status === 'LIVE' ? '<div class="clock" data-clock="' + esc(m.id) + '">' + V.fmtClock(V.elapsed(m, Date.now())) + '</div>' : '') +
       '<div>' + pill(m) + '</div><div style="margin-top:8px;font-size:.9rem;opacity:.85">' + V.fmtDate(m.kickoff) + ', ' + V.fmtTime(m.kickoff) + '</div></div>' +
