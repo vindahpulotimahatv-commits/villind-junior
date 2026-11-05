@@ -35,7 +35,7 @@
     var clock = m.status === 'LIVE' ? ' <b data-clock="' + esc(m.id) + '">' + V.fmtClock(V.elapsed(m, Date.now())) + '</b>' : '';
     return '<a class="card" href="#/match/' + esc(m.id) + '"><div class="meta"><span><span class="chip category-chip">' +
       (V.CATEGORY_LABEL[m.category] || m.category) + '</span> ' + esc(phaseLabel(m)) + clock + '</span>' + pill(m) + '</div>' +
-      '<div class="row"><div class="t">' + esc(m.team_a) + '</div>' + mid + '<div class="t">' + esc(m.team_b) + '</div></div></a>';
+      '<div class="row"><div class="t">' + V.logoImg(m.team_a, 'sm') + '<span>' + esc(m.team_a) + '</span></div>' + mid + '<div class="t r"><span>' + esc(m.team_b) + '</span>' + V.logoImg(m.team_b, 'sm') + '</div></div></a>';
   }
   function demoNote() {
     return state.demo ? '<div class="note">Skor langsung belum aktif. Yang tampil adalah jadwal resmi dari kalender panitia. Panitia perlu menyelesaikan pengaturan Supabase (lihat README).</div>' : '';
@@ -46,6 +46,7 @@
 
   /* ---------- halaman ---------- */
   function miniShield(name, side) {
+    if (V.teamLogo(name)) return V.logoImg(name, 'md');
     var initials = String(name || '').replace(/[^A-Za-z0-9 ]/g,' ').trim().split(/\s+/).slice(0,2).map(function(x){return x.charAt(0).toUpperCase();}).join('');
     return '<div class="team-crest ' + (side || '') + '">' + esc(initials || 'FC') + '</div>';
   }
@@ -128,7 +129,7 @@
         return '<h3 class="disp" style="font-size:1.3rem;margin:14px 0 6px;color:var(--gold)">' + V.CATEGORY_LABEL[c] + ' - Grup ' + g + '</h3>' +
           '<table class="st"><thead><tr><th>#</th><th>Tim</th><th>Main</th><th>M</th><th>S</th><th>K</th><th>GM</th><th>GK</th><th>SG</th><th>Poin</th></tr></thead><tbody>' +
           rows.map(function (r, i) {
-            return '<tr><td>' + (i + 1) + '</td><td>' + esc(r.team) + '</td><td>' + r.p + '</td><td>' + r.w + '</td><td>' + r.d + '</td><td>' + r.l + '</td><td>' + r.gf + '</td><td>' + r.ga + '</td><td>' + r.gd + '</td><td>' + r.pts + '</td></tr>';
+            return '<tr><td>' + (i + 1) + '</td><td class="stt">' + V.logoImg(r.team, 'xs') + esc(r.team) + '</td><td>' + r.p + '</td><td>' + r.w + '</td><td>' + r.d + '</td><td>' + r.l + '</td><td>' + r.gf + '</td><td>' + r.ga + '</td><td>' + r.gd + '</td><td>' + r.pts + '</td></tr>';
           }).join('') + '</tbody></table>';
       }).join('');
     }).join('');
@@ -148,12 +149,24 @@
     var started = m.status !== 'UPCOMING';
     view.innerHTML = '<section><div class="wrap"><a href="#/jadwal" style="font-weight:700;color:var(--g2)">&larr; Kembali ke jadwal</a><div style="height:10px"></div>' +
       '<div class="board"><div>' + (V.CATEGORY_LABEL[m.category] || m.category) + ' &middot; ' + esc(phaseLabel(m)) + '</div>' +
-      '<div class="grid"><div class="tm">' + esc(m.team_a) + '</div><div class="big">' + (started ? m.score_a + '-' + m.score_b : 'VS') + '</div><div class="tm">' + esc(m.team_b) + '</div></div>' +
+      '<div class="grid"><div class="tm">' + V.logoImg(m.team_a, 'lg') + '<div>' + esc(m.team_a) + '</div></div><div class="big">' + (started ? m.score_a + '-' + m.score_b : 'VS') + '</div><div class="tm">' + V.logoImg(m.team_b, 'lg') + '<div>' + esc(m.team_b) + '</div></div></div>' +
       (m.status === 'LIVE' ? '<div class="clock" data-clock="' + esc(m.id) + '">' + V.fmtClock(V.elapsed(m, Date.now())) + '</div>' : '') +
       '<div>' + pill(m) + '</div><div style="margin-top:8px;font-size:.9rem;opacity:.85">' + V.fmtDate(m.kickoff) + ', ' + V.fmtTime(m.kickoff) + '</div></div>' +
-      '<h3 class="disp" style="font-size:1.3rem;color:var(--g1);margin-bottom:8px">Kejadian pertandingan</h3><div id="evs"><div class="empty">Memuat...</div></div></div></section>';
+      '<div id="mstats"></div><h3 class="disp" style="font-size:1.3rem;color:var(--g1);margin-bottom:8px">Kejadian pertandingan</h3><div id="evs"><div class="empty">Memuat...</div></div></div></section>';
     loadEvents(id).then(function (evs) {
       var el = document.getElementById('evs'); if (!el) return;
+      var cnt = { A: { f: 0, y: 0, r: 0 }, B: { f: 0, y: 0, r: 0 } };
+      evs.forEach(function (e) {
+        var c = cnt[e.team]; if (!c) return;
+        if (e.type === 'foul') c.f++; else if (e.type === 'card') { if (/merah/i.test(e.note || '')) c.r++; else c.y++; }
+      });
+      var ms = document.getElementById('mstats');
+      if (ms && evs.some(function (e) { return e.type === 'foul' || e.type === 'card'; })) {
+        ms.innerHTML = '<div class="mstats">' +
+          '<b>' + cnt.A.f + '</b><span>Pelanggaran</span><b>' + cnt.B.f + '</b>' +
+          '<b class="yc">' + cnt.A.y + '</b><span>Kartu kuning</span><b class="yc">' + cnt.B.y + '</b>' +
+          '<b class="rc">' + cnt.A.r + '</b><span>Kartu merah</span><b class="rc">' + cnt.B.r + '</b></div>';
+      }
       var goals = evs.filter(function (e) { return e.type === 'goal' || e.type === 'card'; });
       // gol yang dibatalkan (undo) dihapus dari daftar oleh operator, jadi cukup tampilkan sisanya
       el.innerHTML = goals.length ? goals.map(function (e) {

@@ -49,15 +49,86 @@
     $('b-status').textContent = V.STATUS_LABEL[cur.status] + (cur.period ? ' - Babak ' + cur.period : '');
     clearInterval(tick);
     var c = function () { $('b-clock').textContent = V.fmtClock(V.elapsed(cur, Date.now())); }; c(); tick = setInterval(c, 1000);
-    loadHist();
+    $('fa').textContent = 'Pelanggaran ' + cur.team_a; $('fb').textContent = 'Pelanggaran ' + cur.team_b;
+    $('ya').textContent = 'Kuning ' + cur.team_a; $('yb').textContent = 'Kuning ' + cur.team_b;
+    $('ra').textContent = 'Merah ' + cur.team_a; $('rb').textContent = 'Merah ' + cur.team_b;
+    loadHist(); loadStats(); drawStatsState();
   }
   $('sel').onchange = pick;
+
+  /* ---------- pelanggaran, kartu, statistik ---------- */
+  function statsOf(evs, period) {
+    var s = { A: { foul: 0, foulP: 0, y: 0, r: 0 }, B: { foul: 0, foulP: 0, y: 0, r: 0 } };
+    evs.forEach(function (e) {
+      var t = s[e.team]; if (!t) return;
+      if (e.type === 'foul') { t.foul++; if (!e.period || e.period === period) t.foulP++; }
+      if (e.type === 'card') { if (/merah/i.test(e.note || '')) t.r++; else t.y++; }
+    });
+    return s;
+  }
+  function loadStats() {
+    if (!cur) return;
+    var id = cur.id;
+    sb.from('match_events').select('type,team,period,note').eq('match_id', id).in('type', ['foul', 'card']).then(function (r) {
+      if (!cur || cur.id !== id) return;
+      var s = statsOf(r.data || [], cur.period || 1), p = cur.period || 1;
+      function box(k) {
+        var t = s[k];
+        return '<div class="dbox"><b>' + esc(k === 'A' ? cur.team_a : cur.team_b) + '</b>' +
+          '<div class="drow"><span>Pelanggaran babak ' + p + '</span><i class="' + (t.foulP >= 5 ? 'hot' : '') + '">' + t.foulP + '</i></div>' +
+          '<div class="drow"><span>Pelanggaran total</span><i>' + t.foul + '</i></div>' +
+          '<div class="drow"><span>Kartu kuning</span><i class="yc">' + t.y + '</i></div>' +
+          '<div class="drow"><span>Kartu merah</span><i class="rc">' + t.r + '</i></div></div>';
+      }
+      $('disc').innerHTML = box('A') + box('B');
+    });
+  }
+  function discipline(type, team, label) {
+    if (cur.status !== 'LIVE' && !(type === 'card' && cur.status === 'HALF TIME')) return msg('Pertandingan harus berstatus LIVE. Tekan "Mulai" dulu.');
+    var min = $('mn').value !== '' ? parseInt($('mn').value, 10) : Math.floor(V.elapsed(cur, Date.now()) / 60) + 1;
+    addEvent({ type: type, team: team, player: $('pl').value || null, minute: min, period: cur.period || null, note: label }).then(function (r) {
+      if (r.error) return fail(r.error);
+      log('match:' + cur.id, label + ' ' + (team === 'A' ? cur.team_a : cur.team_b));
+      $('pl').value = ''; $('mn').value = ''; msg(label + ' tersimpan', true); loadHist(); loadStats();
+    });
+  }
+  $('fa').onclick = function () { discipline('foul', 'A', 'Pelanggaran'); };
+  $('fb').onclick = function () { discipline('foul', 'B', 'Pelanggaran'); };
+  $('ya').onclick = function () { discipline('card', 'A', 'Kartu Kuning'); };
+  $('yb').onclick = function () { discipline('card', 'B', 'Kartu Kuning'); };
+  $('ra').onclick = function () { discipline('card', 'A', 'Kartu Merah'); };
+  $('rb').onclick = function () { discipline('card', 'B', 'Kartu Merah'); };
+  $('undo-d').onclick = function () {
+    sb.from('match_events').select('*').eq('match_id', cur.id).in('type', ['foul', 'card']).order('created_at', { ascending: false }).limit(1).then(function (r) {
+      var g = r.data && r.data[0];
+      if (!g) return msg('Tidak ada pelanggaran atau kartu untuk dibatalkan.');
+      var who = g.team === 'A' ? cur.team_a : cur.team_b;
+      if (!confirm('Batalkan ' + (g.note || g.type) + ' untuk ' + who + '?')) return;
+      sb.from('match_events').delete().eq('id', g.id).then(function (d) {
+        if (d.error) return fail(d.error);
+        addEvent({ type: 'undo', team: g.team, note: (g.note || g.type) + ' dibatalkan: ' + who }).then(function () { loadHist(); loadStats(); });
+      });
+    });
+  };
+
+  /* ---------- statistik layar penuh ---------- */
+  var setS = {};
+  function saveSetting(rows, done) {
+    sb.from('settings').upsert(rows).then(function (r) { if (r.error) return fail(r.error); rows.forEach(function (x) { setS[x.key] = x.value; }); drawStatsState(); if (done) done(); });
+  }
+  function drawStatsState() {
+    var on = setS.stats_visible === '1', m = matches.filter(function (x) { return x.id === setS.stats_match; })[0];
+    $('stats-state').textContent = on ? 'TAMPIL di layar: ' + (m ? m.team_a + ' vs ' + m.team_b : '(pertandingan terpilih)') : 'Disembunyikan';
+    $('stats-state').style.color = on ? '#0a7a3e' : '#555';
+  }
+  $('stats-show').onclick = function () { saveSetting([{ key: 'stats_match', value: cur.id }, { key: 'stats_visible', value: '1' }], function () { msg('Statistik ditampilkan di layar', true); }); };
+  $('stats-hide').onclick = function () { saveSetting([{ key: 'stats_visible', value: '0' }], function () { msg('Statistik disembunyikan', true); }); };
 
   function loadHist() {
     sb.from('match_events').select('*').eq('match_id', cur.id).order('created_at', { ascending: false }).limit(30).then(function (r) {
       $('hist').innerHTML = (r.data || []).length ? r.data.map(function (e) {
         var t = new Date(e.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Jakarta' });
-        return '<div class="ev">' + t + ' - ' + esc(e.note || e.type) + (e.player ? ' (' + esc(e.player) + ')' : '') + (e.minute != null ? " menit " + e.minute : '') + ' <small>oleh ' + esc(e.created_by || '') + '</small></div>';
+        return '<div class="ev">' + t + ' - ' + esc(e.note || e.type) + (e.player ? ' (' + esc(e.player) + ')' : '') + ((e.type === 'card' || e.type === 'foul') && e.team ? ' - ' + esc(e.team === 'A' ? cur.team_a : cur.team_b) : '') + (e.minute != null ? " menit " + e.minute : '') + ' <small>oleh ' + esc(e.created_by || '') + '</small></div>';
       }).join('') : '<div class="empty">Belum ada riwayat</div>';
     });
   }
@@ -115,7 +186,7 @@
     });
   };
 
-  function loadSettings() { sb.from('settings').select('*').then(function (r) { (r.data || []).forEach(function (s) { var m = { youtube_url: 's-yt', saweria_url: 's-sa', whatsapp: 's-wa' }[s.key]; if (m) $(m).value = s.value || ''; }); }); }
+  function loadSettings() { sb.from('settings').select('*').then(function (r) { (r.data || []).forEach(function (s) { var m = { youtube_url: 's-yt', saweria_url: 's-sa', whatsapp: 's-wa' }[s.key]; if (m) $(m).value = s.value || ''; setS[s.key] = s.value; }); drawStatsState(); }); }
   $('s-save').onclick = function () {
     var rows = [{ key: 'youtube_url', value: $('s-yt').value.trim() }, { key: 'saweria_url', value: $('s-sa').value.trim() }, { key: 'whatsapp', value: $('s-wa').value.trim() }];
     sb.from('settings').upsert(rows).then(function (r) { if (r.error) return fail(r.error); log('settings', 'pengaturan diubah'); msg('Pengaturan tersimpan', true); });

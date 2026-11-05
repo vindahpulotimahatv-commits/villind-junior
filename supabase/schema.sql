@@ -23,10 +23,11 @@ create table if not exists matches (
 create table if not exists match_events (
   id uuid primary key default gen_random_uuid(),
   match_id uuid not null references matches(id) on delete cascade,
-  type text not null check (type in ('goal','undo','status','card')),
+  type text not null check (type in ('goal','undo','status','card','foul')),
   team text check (team in ('A','B')),
   player text,
   minute int,
+  period int,
   note text,
   created_by text,
   created_at timestamptz not null default now()
@@ -67,3 +68,4 @@ create policy "panitia baca log" on activity_logs for select to authenticated us
 -- Aktifkan realtime agar skor tampil langsung di website.
 alter publication supabase_realtime add table matches;
 alter publication supabase_realtime add table match_events;
+alter publication supabase_realtime add table settings;

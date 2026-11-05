@@ -149,3 +149,29 @@ input,select{width:100%;font:inherit;padding:11px;border:1px solid #5076a4;borde
  .hero-content{padding-left:13px;padding-right:13px}.hero-content h1{font-size:2.55rem}
  .hero-welcome{font-size:1.2rem}.hero-motto{font-size:.7rem}
 }
+
+/* logo tim */
+.tlogo{display:block;width:auto;object-fit:contain;flex:none;filter:drop-shadow(0 2px 4px #0006)}
+.tlogo.xs{height:22px;display:inline-block;vertical-align:middle;margin-right:7px}
+.tlogo.sm{height:34px}
+.tlogo.md{height:62px}
+.tlogo.lg{height:92px;margin:0 auto 6px}
+.row .t{display:flex;align-items:center;gap:8px;min-width:0}.row .t.r{justify-content:flex-end;text-align:right}
+.row .t span{min-width:0;overflow-wrap:anywhere;line-height:1.1}
+.board .tm{display:flex;flex-direction:column;align-items:center;gap:2px}
+table.st td.stt{white-space:nowrap}
+
+/* pelanggaran, kartu */
+.hint{font-size:.8rem;color:var(--mut);margin:8px 0 0;line-height:1.35}
+.btn.foul{background:#e9eef6;color:#10243e;border:1px solid #9fb2cc}
+.btn.ycard{background:#f7c92c;color:#2a2100;border:1px solid #b88f00}
+.btn.rcard{background:#d4262b;color:#fff;border:1px solid #8f1115}
+.disc{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.dbox{background:#0b1f38;color:#fff;border-radius:10px;padding:9px 10px}
+.dbox b{display:block;font-size:.85rem;margin-bottom:5px;color:var(--gold,#F6B83F)}
+.drow{display:flex;justify-content:space-between;align-items:center;font-size:.76rem;padding:2px 0;gap:6px}
+.drow i{font-style:normal;font-weight:900;font-size:1.1rem;min-width:24px;text-align:center;border-radius:6px;padding:0 6px;background:#12345b}
+.drow i.hot{background:#d4262b}.drow i.yc{background:#f7c92c;color:#2a2100}.drow i.rc{background:#d4262b}
+.mstats{display:grid;grid-template-columns:1fr auto 1fr;gap:6px 10px;align-items:center;margin:0 0 14px;padding:12px;border-radius:14px;background:#0b1f38;color:#fff;text-align:center}
+.mstats b{font-size:1.3rem}.mstats span{font-size:.8rem;opacity:.85}
+.mstats .yc{color:#f7c92c}.mstats .rc{color:#ff5a5f}

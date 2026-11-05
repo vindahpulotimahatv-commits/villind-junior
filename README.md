@@ -6,6 +6,9 @@ Website jadwal, skor langsung, dan klasemen turnamen. Tanpa instalasi rumit: han
 - Beranda (hitung mundur, pertandingan live, berikutnya, hasil terbaru)
 - Jadwal (filter U-11 / U-15), detail pertandingan, Klasemen otomatis, Live + YouTube, Info
 - `admin.html` = panel panitia (HP): mulai/half time/babak 2/akhiri, tambah gol, batalkan gol, riwayat, tambah Semi Final/Final, atur YouTube/Saweria/WhatsApp
+- Pelanggaran, kartu kuning, dan kartu merah per tim (dicatat dari panel panitia, tampil di halaman pertandingan)
+- `stats.html` = statistik layar penuh untuk vMix (skor, logo, pencetak gol, pelanggaran, kartu)
+- Logo 13 tim ada di `icons/teams/` (RT yang sama di U-11 dan U-15 memakai satu logo)
 - Bisa dipasang di HP (PWA) dan ada halaman offline
 
 ## Langkah pemasangan (kerjakan berurutan, satu per satu)
@@ -40,6 +43,15 @@ Website sudah menampilkan jadwal resmi walau Supabase belum diisi.
 2. Pilih pertandingan, tekan **Mulai**. Tekan **+1** saat gol. Tekan **Half Time**, **Mulai Babak 2**, **Akhiri**.
 3. Klasemen terisi otomatis dari pertandingan berstatus Full Time.
 4. Semi Final dan Final: tambahkan lewat bagian **Tambah pertandingan**.
+
+## Update fitur pelanggaran dan kartu (jika database sudah dibuat)
+Jika Supabase sudah dipasang sebelum fitur ini ada, jalankan SEKALI file `supabase/update-pelanggaran-kartu.sql` di SQL Editor (tidak menghapus data). Jika baru memasang dari awal dengan `schema.sql` terbaru, tidak perlu.
+
+## Statistik layar penuh di vMix
+1. Di vMix: Add Input, Web Browser, alamat `https://alamat-website/stats.html`, ukuran 1920 x 1080.
+2. Di `admin.html`, pilih pertandingan, lalu tekan **Tampilkan statistik** (di bagian Statistik layar penuh). Tekan **Sembunyikan** untuk menutup. Tampil dan hilang memakai efek pudar.
+3. Uji tampilan: `stats.html?demo=1` (data contoh) atau `stats.html?always=1` (selalu tampil).
+4. Overlay skor kecil (`overlay.html`) tetap bisa dipakai bersamaan.
 
 ## Catatan penting
 - Kategori kuning di kalender dibaca sebagai **U-11**, biru sebagai **U-15**. Untuk mengganti label, ubah `CATEGORY_LABEL` di `js/core.js`.

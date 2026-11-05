@@ -34,12 +34,36 @@
         <div class="clock" id="b-clock">00:00</div><div id="b-status" style="margin-top:6px;font-weight:700"></div>
       </div>
       <div class="panel">
+        <h3>Pemain dan menit</h3>
+        <label for="pl">Nama pemain / nomor punggung (boleh kosong)</label><input id="pl" placeholder="Nama panggilan atau nomor punggung">
+        <label for="mn">Menit (kosong = otomatis dari timer)</label><input id="mn" type="number" min="0" max="120" inputmode="numeric">
+        <p class="hint">Isian ini dipakai untuk gol, pelanggaran, dan kartu di bawah, lalu dikosongkan otomatis.</p>
+      </div>
+      <div class="panel">
         <h3>Gol</h3>
-        <label for="pl">Nama pencetak gol (boleh kosong)</label><input id="pl" placeholder="Nama panggilan atau nomor punggung">
-        <label for="mn">Menit gol (kosong = otomatis dari timer)</label><input id="mn" type="number" min="0" max="120" inputmode="numeric">
         <div class="btns">
           <button class="btn goal" id="ga"></button><button class="btn goal" id="gb"></button>
           <button class="btn red" id="undo" style="grid-column:1/-1">Batalkan gol terakhir</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Pelanggaran dan kartu</h3>
+        <div id="disc" class="disc"></div>
+        <div class="btns">
+          <button class="btn foul" id="fa"></button><button class="btn foul" id="fb"></button>
+          <button class="btn ycard" id="ya"></button><button class="btn ycard" id="yb"></button>
+          <button class="btn rcard" id="ra"></button><button class="btn rcard" id="rb"></button>
+          <button class="btn red" id="undo-d" style="grid-column:1/-1">Batalkan pelanggaran / kartu terakhir</button>
+        </div>
+        <p class="hint">Angka pelanggaran berwarna merah = 5 atau lebih dalam satu babak. Kartu kuning kedua dicatat sebagai kartu merah secara manual.</p>
+      </div>
+      <div class="panel">
+        <h3>Statistik layar penuh (vMix)</h3>
+        <p class="hint">Di vMix tambahkan Web Browser Input dengan alamat <b>alamat-website/stats.html</b> (ukuran 1920x1080). Tombol di bawah menampilkan atau menyembunyikan statistik pertandingan yang sedang dipilih di sini.</p>
+        <div id="stats-state" style="font-weight:800;margin:6px 0"></div>
+        <div class="btns">
+          <button class="btn dark" id="stats-show">Tampilkan statistik</button>
+          <button class="btn" id="stats-hide">Sembunyikan</button>
         </div>
       </div>
       <div class="panel">

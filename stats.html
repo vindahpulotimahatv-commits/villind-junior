@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><title>Statistik layar penuh vMix</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:transparent;font-family:"Barlow Condensed","Arial Narrow",Arial,sans-serif;color:#fff;text-transform:uppercase}
+#stage{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0;opacity:0;transition:opacity .5s ease;overflow:hidden}
+#stage.on{opacity:1}
+.bg{position:absolute;inset:0;background:radial-gradient(circle at 50% -10%,#1f5088 0%,#0a2040 42%,#030b18 100%)}
+.bg:after{content:"";position:absolute;inset:18px;border:3px solid #F6B83F;border-radius:22px;box-shadow:inset 0 0 60px #000a}
+.top{position:absolute;left:70px;right:70px;top:44px;height:86px;display:flex;align-items:center;justify-content:space-between}
+.top .ev{font-size:44px;font-weight:800;color:#F6B83F;letter-spacing:2px}
+.top .ttl{background:#F6B83F;color:#101923;font-size:50px;font-weight:900;padding:6px 44px;border-radius:12px;letter-spacing:3px}
+.top .ph{font-size:44px;font-weight:800;text-align:right}
+.team{position:absolute;top:150px;width:620px;text-align:center}
+.team.a{left:80px}.team.b{right:80px}
+.logo{height:330px;display:flex;align-items:center;justify-content:center}
+.logo img{max-height:330px;max-width:300px;filter:drop-shadow(0 10px 22px #000c)}
+.logo .fb{width:250px;height:250px;border-radius:50%;background:#12345b;border:6px solid #F6B83F;display:grid;place-items:center;font-size:110px;font-weight:900}
+.nm{font-size:58px;font-weight:900;line-height:1;margin-top:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sc{margin-top:8px;height:150px;overflow:hidden;font-size:31px;line-height:1.2;font-weight:700;color:#d6e4f7}
+.sc div:before{content:"\26BD  "}
+.sc div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mid{position:absolute;left:700px;width:520px;top:170px;text-align:center}
+.score{font-size:250px;font-weight:900;line-height:.95;color:#F6B83F;text-shadow:0 8px 30px #000a;letter-spacing:6px}
+.score i{font-style:normal;color:#fff;opacity:.9;padding:0 6px}
+.clock{font-size:92px;font-weight:800;line-height:1;margin-top:12px}
+.stt{display:inline-block;margin-top:14px;font-size:42px;font-weight:900;padding:4px 30px;border-radius:10px;background:#174C46;color:#F6B83F;letter-spacing:2px}
+.stt.live{background:#e51c2b;color:#fff}
+.stats{position:absolute;left:130px;right:130px;top:690px}
+.row{display:flex;align-items:center;height:72px}
+.row .v{width:96px;font-size:60px;font-weight:900;text-align:center}
+.row .bar{flex:1;height:30px;background:#ffffff14;border-radius:15px;position:relative;overflow:hidden}
+.row .bar i{position:absolute;top:0;bottom:0;border-radius:15px;transition:width .6s ease}
+.row .bar.l i{right:0;background:linear-gradient(90deg,#c98a12,#F6B83F)}
+.row .bar.r i{left:0;background:linear-gradient(90deg,#35c2a1,#1b8f77)}
+.row .lb{width:560px;white-space:nowrap;text-align:center;font-size:40px;font-weight:800;letter-spacing:1px;display:flex;align-items:center;justify-content:center;gap:14px}
+.card{display:inline-block;width:26px;height:36px;border-radius:4px}
+.card.y{background:#f7c92c}.card.r{background:#e0232a}
+.row.ycrow .v.hot{color:#f7c92c}.row.rcrow .v.hot{color:#ff5a5f}
+.foot{position:absolute;left:0;right:0;bottom:36px;text-align:center;font-size:30px;letter-spacing:6px;color:#F6B83F;font-weight:800}
+.empty{position:absolute;inset:0;display:grid;place-items:center;font-size:70px;font-weight:900;color:#ffffff88}
+</style></head><body>
+<div id="stage"><div class="bg"></div>
+ <div class="top"><div class="ev">VILLIND CUP II 2026</div><div class="ttl">STATISTIK PERTANDINGAN</div><div class="ph" id="ph"></div></div>
+ <div class="team a"><div class="logo" id="la"></div><div class="nm" id="na"></div><div class="sc" id="sa"></div></div>
+ <div class="mid"><div class="score" id="score"></div><div class="clock" id="clock"></div><div class="stt" id="stt"></div></div>
+ <div class="team b"><div class="logo" id="lb"></div><div class="nm" id="nb"></div><div class="sc" id="sb"></div></div>
+ <div class="stats" id="stats"></div>
+ <div class="foot">VILLIND JUNIOR TOURNAMENT</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="js/config.js"></script>
+<script src="js/core.js"></script>
+<script>
+/* Alamat untuk vMix (Web Browser Input 1920x1080):
+   stats.html            = tampil/sembunyi dikendalikan dari panel panitia (admin.html)
+   stats.html?always=1   = selalu tampil (untuk uji coba)
+   stats.html?demo=1     = data contoh tanpa database (untuk uji tampilan) */
+var V = window.VJT, esc = V.esc, qs = new URLSearchParams(location.search);
+var demo = qs.get('demo') === '1', always = qs.get('always') === '1' || demo;
+var $ = function (i) { return document.getElementById(i); };
+var S = { visible: false, m: null, evs: [] };
+
+function fit() { var k = Math.min(innerWidth / 1920, innerHeight / 1080); $('stage').style.transform = 'scale(' + k + ')'; }
+addEventListener('resize', fit); fit();
+
+function logo(name) {
+  var u = V.teamLogo(name);
+  if (u) return '<img src="' + u + '" alt="">';
+  var ini = String(name || '').replace(/[^A-Za-z0-9 ]/g, ' ').trim().split(/\s+/).slice(0, 2).map(function (x) { return x.charAt(0); }).join('');
+  return '<div class="fb">' + esc(ini || 'FC') + '</div>';
+}
+function tally(evs, period) {
+  var s = { A: { f: 0, fp: 0, y: 0, r: 0, goals: [] }, B: { f: 0, fp: 0, y: 0, r: 0, goals: [] } };
+  evs.slice().sort(function (x, y) { return (x.minute || 0) - (y.minute || 0); }).forEach(function (e) {
+    var t = s[e.team]; if (!t) return;
+    if (e.type === 'foul') { t.f++; if (!e.period || e.period === period) t.fp++; }
+    else if (e.type === 'card') { if (/merah/i.test(e.note || '')) t.r++; else t.y++; }
+    else if (e.type === 'goal') t.goals.push((e.player ? e.player : 'Gol') + (e.minute != null ? ' ' + e.minute + "'" : ''));
+  });
+  return s;
+}
+function row(cls, label, a, b, icon) {
+  var mx = Math.max(a, b, 1);
+  return '<div class="row ' + cls + '"><div class="v' + (cls && a > 0 ? ' hot' : '') + '">' + a + '</div><div class="bar l"><i style="width:' + (a / mx * 100) + '%"></i></div>' +
+    '<div class="lb">' + (icon ? '<span class="card ' + icon + '"></span>' : '') + label + (icon ? '<span class="card ' + icon + '"></span>' : '') + '</div>' +
+    '<div class="bar r"><i style="width:' + (b / mx * 100) + '%"></i></div><div class="v' + (cls && b > 0 ? ' hot' : '') + '">' + b + '</div></div>';
+}
+function draw() {
+  var m = S.m, on = always || S.visible;
+  $('stage').classList.toggle('on', !!(on && m));
+  if (!m) return;
+  var p = m.period || 1, t = tally(S.evs, p);
+  $('ph').textContent = (V.CATEGORY_LABEL[m.category] || m.category) + ' · ' + (V.matchGroup(m) ? 'GRUP ' + V.matchGroup(m) : m.phase);
+  $('la').innerHTML = logo(m.team_a); $('lb').innerHTML = logo(m.team_b);
+  $('na').textContent = m.team_a; $('nb').textContent = m.team_b;
+  $('sa').innerHTML = t.A.goals.slice(0, 5).map(function (g) { return '<div>' + esc(g) + '</div>'; }).join('');
+  $('sb').innerHTML = t.B.goals.slice(0, 5).map(function (g) { return '<div>' + esc(g) + '</div>'; }).join('');
+  var started = m.status !== 'UPCOMING' && m.status !== 'POSTPONED' && m.status !== 'CANCELLED';
+  $('score').innerHTML = started ? m.score_a + '<i>-</i>' + m.score_b : 'VS';
+  var st = $('stt'); st.className = 'stt' + (m.status === 'LIVE' ? ' live' : '');
+  st.textContent = m.status === 'LIVE' ? 'LIVE · BABAK ' + m.period : (V.STATUS_LABEL[m.status] || m.status);
+  $('clock').style.display = started ? '' : 'none';
+  $('stats').innerHTML =
+    row('', 'Pelanggaran babak ' + p, t.A.fp, t.B.fp) +
+    row('', 'Pelanggaran total', t.A.f, t.B.f) +
+    row('ycrow', 'Kartu kuning', t.A.y, t.B.y, 'y') +
+    row('rcrow', 'Kartu merah', t.A.r, t.B.r, 'r');
+  tick();
+}
+function tick() { if (S.m) $('clock').textContent = V.fmtClock(V.elapsed(S.m, Date.now())); }
+setInterval(tick, 1000);
+
+function load() {
+  if (demo) {
+    S.m = { id: 'demo', category: 'U11', phase: 'Babak Grup', team_a: 'RT 005/021', team_b: 'RT 009/021', score_a: 2, score_b: 1, status: 'LIVE', period: 2, clock_base: 600, clock_started_at: new Date().toISOString() };
+    S.evs = [
+      { type: 'goal', team: 'A', player: 'Raka', minute: 4 }, { type: 'goal', team: 'B', player: 'Dimas', minute: 9 }, { type: 'goal', team: 'A', player: 'Fajar', minute: 14 },
+      { type: 'foul', team: 'A', period: 1 }, { type: 'foul', team: 'A', period: 1 }, { type: 'foul', team: 'B', period: 1 }, { type: 'foul', team: 'B', period: 1 }, { type: 'foul', team: 'B', period: 1 },
+      { type: 'foul', team: 'A', period: 2 }, { type: 'foul', team: 'A', period: 2 }, { type: 'foul', team: 'A', period: 2 }, { type: 'foul', team: 'B', period: 2 },
+      { type: 'card', team: 'B', note: 'Kartu Kuning' }, { type: 'card', team: 'B', note: 'Kartu Kuning' }, { type: 'card', team: 'A', note: 'Kartu Kuning' }, { type: 'card', team: 'B', note: 'Kartu Merah' }
+    ];
+    S.visible = true; return draw();
+  }
+  if (!V.sb) return;
+  V.sb.from('settings').select('*').then(function (r) {
+    var set = {}; (r.data || []).forEach(function (x) { set[x.key] = x.value; });
+    S.visible = set.stats_visible === '1';
+    var q = set.stats_match
+      ? V.sb.from('matches').select('*').eq('id', set.stats_match).limit(1)
+      : V.sb.from('matches').select('*').in('status', ['LIVE', 'HALF TIME']).order('kickoff').limit(1);
+    return q.then(function (mr) {
+      S.m = (mr.data || [])[0] || null;
+      if (!S.m) { S.evs = []; return draw(); }
+      return V.sb.from('match_events').select('*').eq('match_id', S.m.id).then(function (er) { S.evs = er.data || []; draw(); });
+    });
+  });
+}
+load();
+if (!demo) {
+  setInterval(load, 3000);
+  if (V.sb) V.sb.channel('vjt-stats').on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, load)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'match_events' }, load)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, load).subscribe();
+}
+</script></body></html>

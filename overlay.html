@@ -9,6 +9,7 @@ html,body{margin:0;background:transparent;overflow:hidden;font-family:"Barlow Co
 .tm{background:#123D38;padding:0 26px;display:flex;align-items:center;font-size:40px;min-width:230px;justify-content:center;white-space:nowrap}
 .sc{background:#101923;color:#F6B83F;padding:0 22px;display:flex;align-items:center;font-size:56px;min-width:60px;justify-content:center}
 .ck{background:#174C46;padding:0 20px;display:flex;flex-direction:column;justify-content:center;align-items:center;font-size:36px;line-height:1;min-width:110px}
+.tm{gap:12px}.tlogo.ov{height:68px;width:auto}
 .ck small{font-size:18px;color:#F6B83F;margin-top:4px}
 </style></head><body>
 <div id="bar"><div class="cat" id="c"></div><div class="tm" id="a"></div><div class="sc" id="sa"></div><div class="sc" id="sb">0</div><div class="tm" id="b"></div><div class="ck"><span id="t">00:00</span><small id="s"></small></div></div>
@@ -30,7 +31,7 @@ function draw() {
   $('bar').classList.toggle('on', !!cur);
   if (!cur) return;
   $('c').textContent = V.CATEGORY_LABEL[cur.category] || cur.category;
-  $('a').textContent = cur.team_a; $('b').textContent = cur.team_b;
+  $('a').innerHTML = V.logoImg(cur.team_a, 'ov') + '<span>' + V.esc(cur.team_a) + '</span>'; $('b').innerHTML = '<span>' + V.esc(cur.team_b) + '</span>' + V.logoImg(cur.team_b, 'ov');
   $('sa').textContent = cur.score_a; $('sb').textContent = cur.score_b;
   $('s').textContent = cur.status === 'HALF TIME' ? 'HALF TIME' : 'BABAK ' + cur.period;
   $('t').textContent = V.fmtClock(V.elapsed(cur, Date.now()));

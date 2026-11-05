@@ -20,6 +20,18 @@
     return a && a === b ? a : null;
   }
 
+  // Logo tim. RT yang sama (U-11 dan U-15) memakai satu logo yang sama.
+  var TEAM_LOGO_EXTRA = { 'villind a': 'villind-a', 'villind b': 'villind-b', 'villipo rw.14': 'villipo-rw14' };
+  function teamLogo(name) {
+    var n = String(name || '').trim().toLowerCase(), m = n.match(/^rt\s*0*(\d+)/);
+    var f = m ? 'rt' + ('00' + m[1]).slice(-3) : TEAM_LOGO_EXTRA[n];
+    return f ? 'icons/teams/' + f + '.png' : null;
+  }
+  function logoImg(name, cls) {
+    var u = teamLogo(name);
+    return u ? '<img class="tlogo ' + (cls || '') + '" src="' + u + '" alt="Logo ' + String(name).replace(/"/g, '') + '" loading="lazy">' : '';
+  }
+
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -70,7 +82,7 @@
       .sort(function (x, y) { return y.pts - x.pts || y.gd - x.gd || y.gf - x.gf || x.ord - y.ord; });
   }
 
-  var api = { GROUPS: GROUPS, groupOf: groupOf, matchGroup: matchGroup, CATEGORY_LABEL: CATEGORY_LABEL, STATUS_LABEL: STATUS_LABEL, esc: esc, elapsed: elapsed, fmtClock: fmtClock,
+  var api = { teamLogo: teamLogo, logoImg: logoImg, GROUPS: GROUPS, groupOf: groupOf, matchGroup: matchGroup, CATEGORY_LABEL: CATEGORY_LABEL, STATUS_LABEL: STATUS_LABEL, esc: esc, elapsed: elapsed, fmtClock: fmtClock,
     fmtDate: fmtDate, fmtTime: fmtTime, dayKey: dayKey, youtubeEmbed: youtubeEmbed, standings: standings };
 
   if (typeof window !== 'undefined') {
