@@ -1,18 +1,14 @@
 /* Susunan pemain + lapangan beranimasi (halaman detail pertandingan) */
 (function () {
   var V = window.VJT, esc = V.esc;
-  var FORMS = {
-    11: ['4-3-3', '4-4-2', '4-2-3-1', '3-5-2', '4-1-4-1'],
-    9: ['3-3-2', '3-2-3', '2-4-2', '4-3-1'],
-    7: ['2-3-1', '3-2-1', '2-2-2', '3-1-2']
-  };
+  var FORMS = { 5: ['2-2', '1-2-1', '3-1', '1-3', '2-1-1'] }; // futsal: 1 kiper + 4 pemain
   var NAMES = ['Raka', 'Dimas', 'Fajar', 'Bayu', 'Rizky', 'Arka', 'Naufal', 'Zidan', 'Alif', 'Kenzo', 'Farel', 'Dafa', 'Rafi', 'Gilang', 'Aldi', 'Reza', 'Haikal', 'Kevin', 'Bima', 'Satria'];
   var cache = {}, sel = {}, played = {}, timer = null;
 
   function hash(s) { var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
   function rng(seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 
-  function sizeFor(n) { return n >= 11 ? 11 : n >= 9 ? 9 : n >= 7 ? 7 : n; }
+  function sizeFor(n) { return Math.min(5, n); }
   function formsFor(n) {
     if (FORMS[n]) return FORMS[n];
     var m = n - 1; if (m <= 0) return ['GK']; if (m <= 2) return [String(m)];
@@ -28,7 +24,7 @@
     });
   }
   function samplePlayers(team, cat) {
-    var r = rng(hash(team + cat)), pool = NAMES.slice(), out = [], total = (cat === 'U15' ? 11 : 9) + 3;
+    var r = rng(hash(team + cat)), pool = NAMES.slice(), out = [], total = 8;
     for (var i = 0; i < total; i++) out.push({ no: String(i + 1), name: pool.splice(Math.floor(r() * pool.length), 1)[0] });
     return out;
   }
@@ -49,8 +45,8 @@
     if (lines.reduce(function (a, b) { return a + b; }, 0) !== n - 1) lines = [n - 1].filter(function (x) { return x > 0; });
     var pts = [{ x: 50, y: 92, pos: 'GK' }], k = lines.length;
     lines.forEach(function (c, i) {
-      var y = k === 1 ? 70 : 80 - i * (25 / (k - 1));
-      var sp = c === 2 ? 34 : Math.min(24, 76 / Math.max(1, c - 1));
+      var y = k === 1 ? 66 : k === 2 ? 76 - i * 18 : 79 - i * 11.5;
+      var sp = c === 2 ? 36 : Math.min(30, 76 / Math.max(1, c - 1));
       var pos = i === 0 ? 'DF' : (i === k - 1 ? 'FW' : 'MF');
       if (k === 1) pos = 'MF';
       for (var j = 0; j < c; j++) pts.push({ x: c === 1 ? 50 : 50 + (j - (c - 1) / 2) * sp, y: y, pos: pos });
