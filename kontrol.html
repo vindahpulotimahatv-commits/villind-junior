@@ -43,11 +43,23 @@ button{font:inherit;cursor:pointer;border:0;color:inherit}
 .match{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:800}
 .match .s{font-size:1.6rem;color:var(--gold)}.match small{display:block;color:var(--mut);font-weight:600;font-size:.72rem}
 a.lnk{color:var(--gold);font-weight:800;font-size:.85rem}
+.sb{background:radial-gradient(circle at 50% 0,#1b4777,#061326 72%);border:1px solid var(--gold);border-radius:16px;padding:12px;margin-bottom:12px;text-align:center}
+.sb-meta{display:flex;justify-content:space-between;align-items:center;font-size:.72rem;font-weight:800;color:var(--mut);letter-spacing:.06em}
+.sb-row{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center;margin:10px 0 4px}
+.sb-t{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0}.sb-t img{width:46px;height:46px;object-fit:contain}.sb-t b{font-size:.88rem;line-height:1.15}
+.sb-sc{font-size:3rem;font-weight:900;color:var(--gold);line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums}.sb-sc i{font-style:normal;color:#fff;padding:0 6px}
+.sb-clock{font-size:1.5rem;font-weight:800;font-variant-numeric:tabular-nums}.sb-sub{font-size:.76rem;color:var(--mut);margin-top:2px}
+.sb.idle .sb-sc,.sb.idle .sb-clock{opacity:.35}
 .tip{font-size:.74rem;color:var(--mut);margin-top:8px;line-height:1.4}
 </style>
 </head>
 <body>
 <header><i class="dot" id="dot"></i><h1>KONTROL SIARAN</h1><span id="st">Belum tersambung</span></header>
+<section class="sb idle" id="sb">
+  <div class="sb-meta"><span id="sbcat">VILLIND CUP II</span><span class="badge" id="sbst">MENUNGGU</span></div>
+  <div class="sb-row"><div class="sb-t"><img id="sbla" alt="" hidden><b id="sbta">-</b></div><div class="sb-sc"><span id="sbsa">0</span><i>:</i><span id="sbsb">0</span></div><div class="sb-t"><img id="sblb" alt="" hidden><b id="sbtb">-</b></div></div>
+  <div class="sb-clock" id="sbck">00:00</div><div class="sb-sub" id="sbsub">Memuat pertandingan...</div>
+</section>
 <div id="msg"></div>
 
 <form id="conn" class="panel">
@@ -55,6 +67,7 @@ a.lnk{color:var(--gold);font-weight:800;font-size:.85rem}
   <label for="host">Alamat laptop (IP)</label><input id="host" inputmode="decimal" autocomplete="off" placeholder="contoh 192.168.1.20">
   <label for="port">Port</label><input id="port" inputmode="numeric" value="4455">
   <label for="pw">Kata sandi OBS WebSocket</label><input id="pw" type="password" autocomplete="off">
+  <label for="site">Alamat website (untuk logo dan panel skor)</label><input id="site" inputmode="url" autocomplete="off" placeholder="contoh https://namaanda.github.io/villind-junior">
   <button class="btn" type="submit">SAMBUNGKAN</button>
   <p class="tip">Buka halaman ini dari alamat laptop (lihat PANDUAN-SIARAN.md), supaya sambungan ke OBS diizinkan browser.</p>
 </form>
@@ -67,13 +80,11 @@ a.lnk{color:var(--gold);font-weight:800;font-size:.85rem}
   </div>
   <div class="panel"><h2>GANTI KAMERA (ketuk)</h2><div id="scenes"></div></div>
   <div class="panel" id="ovp"><h2>OVERLAY</h2><div id="ovs"></div><p class="tip">Statistik layar penuh diatur dari panel panitia (Tampilkan statistik).</p></div>
-  <div class="panel"><h2>PERTANDINGAN</h2><div class="match" id="match"><small>Memuat...</small></div><div class="tip" id="mtip"></div>
-    <a class="lnk" href="admin.html" target="_blank" rel="noopener">Buka panel skor panitia &rsaquo;</a></div>
+  <div class="panel"><h2>SKOR PERTANDINGAN</h2><a class="lnk" id="adm" href="admin.html" target="_blank" rel="noopener">Buka panel skor panitia &rsaquo;</a><p class="tip">Catat gol, kartu, dan status pertandingan di panel ini. Skor di atas ikut berubah otomatis.</p></div>
   <button class="btn ghost" id="dc">PUTUSKAN SAMBUNGAN</button>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="js/config.js"></script><script src="js/core.js"></script>
+<script src="js/config.js" onerror="this.remove()"></script>
 <script>
 (function () {
   /* ====== PENGATURAN ======
@@ -132,7 +143,7 @@ a.lnk{color:var(--gold);font-weight:800;font-size:.85rem}
   function connect() {
     var host = $('host').value.trim(), port = $('port').value.trim() || '4455', pw = $('pw').value;
     if (!host) return msg('Isi alamat laptop dulu.');
-    try { localStorage.setItem('vjt-ctl', JSON.stringify({ host: host, port: port, pw: pw })); } catch (e) {}
+    try { localStorage.setItem('vjt-ctl', JSON.stringify({ host: host, port: port, pw: pw, site: $('site').value.trim() })); } catch (e) {}
     msg(''); status('Menyambung...', 'wait'); want = true;
     try { ws = new WebSocket('ws://' + host + ':' + port); } catch (e) { return fail('Alamat tidak valid.'); }
     var opened = false;
@@ -253,17 +264,51 @@ a.lnk{color:var(--gold);font-weight:800;font-size:.85rem}
     Promise.all(all.map(function (s) { return itemId(s, src).then(function (id) { return id == null ? null : req('SetSceneItemEnabled', { sceneName: s, sceneItemId: id, sceneItemEnabled: on }); }).catch(function () {}); })).then(refreshOverlays);
   }
 
-  /* ---- info pertandingan (Supabase, opsional) ---- */
-  function loadMatch() {
-    var V = window.VJT; if (!V || !V.sb) { $('match').innerHTML = '<small>Skor belum tersambung ke database</small>'; return; }
-    Promise.resolve(V.sb.from('matches').select('*').in('status', ['LIVE', 'HALF TIME']).order('kickoff')).then(function (r) {
-      var m = r.data && r.data[0];
-      $('match').innerHTML = m ? '<span>' + V.esc(m.team_a) + '</span><span class="s">' + m.score_a + ' - ' + m.score_b + '</span><span style="text-align:right">' + V.esc(m.team_b) + '</span>' +
-        '' : '<small>Belum ada pertandingan LIVE</small>';
-      $('mtip').innerHTML = m ? V.esc(V.STATUS_LABEL[m.status] || m.status) + ' &middot; ' + V.fmtClock(V.elapsed(m, Date.now())) : '';
-    }).catch(function () {});
+  /* ---- skor & jam (langsung dari database, tanpa overlay OBS) ---- */
+  var EMB = { SUPABASE_URL: 'https://dhvvexqeugsrxfnctxlr.supabase.co', SUPABASE_ANON_KEY: 'sb_publishable_O9DBRr55ha3QUHc28kyGoA_euEq-9dR' };
+  var curMatch = null, LOGO_X = { 'villind a': 'villind-a', 'villind b': 'villind-b', 'villipo rw.14': 'villipo-rw14' };
+  function rest(q) {
+    var C = window.VJT_CONFIG || EMB;
+    return fetch(C.SUPABASE_URL + '/rest/v1/' + q, { headers: { apikey: C.SUPABASE_ANON_KEY } }).then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('db')); });
   }
-  setInterval(function () { if (!$('app').classList.contains('hide')) loadMatch(); }, 5000);
+  function site() { return ($('site').value || '').trim().replace(/\/+$/, ''); }
+  function logoUrl(name) {
+    var b = site(); if (!b) return '';
+    var n = String(name || '').trim().toLowerCase().replace(/\s+/g, ' '), m = n.match(/^rt\s*0*(\d+)/);
+    var f = m ? 'rt' + ('00' + m[1]).slice(-3) : LOGO_X[n]; return f ? b + '/icons/teams/' + f + '.png' : '';
+  }
+  function setLogo(id, name) { var im = $(id), u = logoUrl(name); if (u) { im.onerror = function () { im.hidden = true; }; im.src = u; im.hidden = false; } else im.hidden = true; }
+  function fmtClock(sec) { return String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0'); }
+  function elapsed(m) {
+    var b = m.clock_base || 0;
+    if (m.status === 'LIVE' && m.clock_started_at) b += Math.max(0, Math.floor((Date.now() - new Date(m.clock_started_at).getTime()) / 1000));
+    return b;
+  }
+  var CAT = { U11: 'U-11', U15: 'U-15' }, ST = { LIVE: 'LIVE', 'HALF TIME': 'HALF TIME', 'FULL TIME': 'FULL TIME', UPCOMING: 'BERIKUTNYA' };
+  function drawMatch() {
+    var m = curMatch, box = $('sb'), live = m && (m.status === 'LIVE' || m.status === 'HALF TIME');
+    box.classList.toggle('idle', !live);
+    if (!m) { $('sbta').textContent = '-'; $('sbtb').textContent = '-'; $('sbsa').textContent = '0'; $('sbsb').textContent = '0'; $('sbla').hidden = $('sblb').hidden = true;
+      $('sbck').textContent = '00:00'; $('sbst').textContent = 'MENUNGGU'; $('sbst').className = 'badge'; $('sbcat').textContent = 'VILLIND CUP II'; $('sbsub').textContent = 'Belum ada pertandingan'; return; }
+    $('sbcat').textContent = (CAT[m.category] || m.category) + (m.phase ? ' \u00b7 ' + m.phase : '');
+    $('sbta').textContent = m.team_a; $('sbtb').textContent = m.team_b;
+    setLogo('sbla', m.team_a); setLogo('sblb', m.team_b);
+    $('sbsa').textContent = live ? m.score_a : '-'; $('sbsb').textContent = live ? m.score_b : '-';
+    $('sbst').textContent = ST[m.status] || m.status; $('sbst').className = 'badge' + (m.status === 'LIVE' ? ' live' : '');
+    if (live) { $('sbck').textContent = fmtClock(elapsed(m)); $('sbsub').textContent = m.status === 'HALF TIME' ? 'Istirahat' : 'Babak ' + (m.period || 1); }
+    else { var t = new Date(m.kickoff).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Jakarta' }).replace('.', ':');
+      $('sbck').textContent = t + ' WIB'; $('sbsub').textContent = 'Belum ada pertandingan LIVE. Pertandingan berikutnya.'; }
+  }
+  var lastKey = '';
+  function loadMatch() {
+    rest('matches?select=*&status=in.(LIVE,%22HALF%20TIME%22)&order=kickoff.asc').then(function (d) {
+      if (d.length) return d[0];
+      return rest('matches?select=*&status=eq.UPCOMING&order=kickoff.asc&limit=1').then(function (u) { return u[0] || null; });
+    }).then(function (m) { curMatch = m; drawMatch(); }).catch(function () { if (!curMatch) $('sbsub').textContent = 'Skor belum bisa dimuat (cek internet HP)'; });
+  }
+  setInterval(loadMatch, 3000);
+  setInterval(function () { if (curMatch && curMatch.status === 'LIVE') $('sbck').textContent = fmtClock(elapsed(curMatch)); }, 1000);
+  $('site').addEventListener('change', function () { $('adm').href = site() ? site() + '/admin.html' : 'admin.html'; drawMatch(); });
 
   /* ---- start ---- */
   $('conn').onsubmit = function (e) { e.preventDefault(); connect(); };
@@ -271,11 +316,12 @@ a.lnk{color:var(--gold);font-weight:800;font-size:.85rem}
   document.addEventListener('visibilitychange', function () { if (!document.hidden && ws && ws.readyState === 1) { loadScenes(); pollStream(); } });
   try {
     var sv = JSON.parse(localStorage.getItem('vjt-ctl') || 'null');
-    if (sv) { $('host').value = sv.host; $('port').value = sv.port; $('pw').value = sv.pw; }
+    if (sv) { $('host').value = sv.host; $('port').value = sv.port; $('pw').value = sv.pw; $('site').value = sv.site || ''; }
   } catch (e) {}
   if (!$('host').value && location.hostname) $('host').value = location.hostname;
   if (!$('pw').value && location.search.indexOf('auto') < 0) { /* menunggu input */ }
   if ($('host').value && $('pw').value) connect();
+  $('adm').href = site() ? site() + '/admin.html' : 'admin.html';
   loadMatch();
 })();
 </script>
