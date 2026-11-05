@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Kontrol Siaran - Villind Junior Tournament</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#030b18">
+<style>
+:root{--gold:#ffc629;--navy:#030b18;--card:#0c2341;--line:#315987;--red:#e51c2b;--ok:#19b36b;--mut:#a9bdd8}
+*{box-sizing:border-box;margin:0}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--navy);color:#fff;padding:0 12px calc(24px + env(safe-area-inset-bottom));-webkit-tap-highlight-color:transparent}
+header{position:sticky;top:0;z-index:5;background:rgba(3,11,24,.97);border-bottom:2px solid var(--gold);margin:0 -12px 12px;padding:10px 14px;display:flex;align-items:center;gap:10px}
+header h1{font-size:1.05rem;letter-spacing:.04em;flex:1}
+.dot{width:11px;height:11px;border-radius:50%;background:#777}.dot.on{background:var(--ok);box-shadow:0 0 9px var(--ok)}.dot.wait{background:var(--gold)}
+#st{font-size:.75rem;color:var(--mut)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px}
+.panel h2{font-size:.78rem;letter-spacing:.1em;color:var(--gold);margin-bottom:9px}
+label{display:block;font-size:.78rem;color:var(--mut);margin:8px 0 3px}
+input{width:100%;font:inherit;padding:11px;border-radius:9px;border:1px solid var(--line);background:#071a31;color:#fff}
+button{font:inherit;cursor:pointer;border:0;color:inherit}
+.btn{display:block;width:100%;min-height:50px;border-radius:12px;font-weight:900;letter-spacing:.04em;background:linear-gradient(135deg,#ffe05b,#f2a900);color:#101522;margin-top:10px}
+.btn.red{background:var(--red);color:#fff}.btn.ghost{background:#102b50;color:#fff;border:1px solid var(--line)}
+.btn:active{transform:scale(.98)}.hide{display:none!important}
+#prog{position:relative;aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden;border:2px solid var(--red)}
+#prog img{width:100%;height:100%;object-fit:cover;display:block}
+#prog .tag{position:absolute;left:8px;top:8px;background:var(--red);font-size:.7rem;font-weight:900;padding:3px 9px;border-radius:99px;letter-spacing:.08em}
+#prog .nm{position:absolute;left:8px;bottom:8px;background:#000b;font-size:.8rem;font-weight:800;padding:3px 9px;border-radius:6px}
+.bar{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.badge{font-weight:900;font-size:.85rem;padding:6px 12px;border-radius:99px;background:#33445c}.badge.live{background:var(--red);animation:pl 1.4s infinite}
+@keyframes pl{50%{opacity:.7}}
+#tm{font-variant-numeric:tabular-nums;font-weight:800;margin-left:auto}
+#scenes{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.sc{position:relative;aspect-ratio:16/9;background:#000;border:3px solid #294b72;border-radius:11px;overflow:hidden;padding:0}
+.sc img{width:100%;height:100%;object-fit:cover;display:block}
+.sc span{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(transparent,#000d);font-weight:800;font-size:.82rem;padding:14px 6px 5px;text-align:left}
+.sc.on{border-color:var(--red);box-shadow:0 0 0 2px #e51c2b66}
+.sc.on:after{content:"LIVE";position:absolute;right:5px;top:5px;background:var(--red);font-size:.6rem;font-weight:900;padding:2px 6px;border-radius:99px}
+.sc:active{transform:scale(.97)}
+#ovs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ov{min-height:46px;border-radius:10px;font-weight:800;background:#102b50;border:1px solid var(--line)}.ov.on{background:var(--ok);border-color:#7df0b8}
+#msg{font-size:.82rem;margin-bottom:10px}#msg b{display:block;background:#5a1620;border:1px solid #e05060;padding:9px 11px;border-radius:9px;font-weight:600}
+.match{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:800}
+.match .s{font-size:1.6rem;color:var(--gold)}.match small{display:block;color:var(--mut);font-weight:600;font-size:.72rem}
+a.lnk{color:var(--gold);font-weight:800;font-size:.85rem}
+.tip{font-size:.74rem;color:var(--mut);margin-top:8px;line-height:1.4}
+</style>
+</head>
+<body>
+<header><i class="dot" id="dot"></i><h1>KONTROL SIARAN</h1><span id="st">Belum tersambung</span></header>
+<div id="msg"></div>
+
+<form id="conn" class="panel">
+  <h2>SAMBUNGKAN KE OBS</h2>
+  <label for="host">Alamat laptop (IP)</label><input id="host" inputmode="decimal" autocomplete="off" placeholder="contoh 192.168.1.20">
+  <label for="port">Port</label><input id="port" inputmode="numeric" value="4455">
+  <label for="pw">Kata sandi OBS WebSocket</label><input id="pw" type="password" autocomplete="off">
+  <button class="btn" type="submit">SAMBUNGKAN</button>
+  <p class="tip">Buka halaman ini dari alamat laptop (lihat PANDUAN-SIARAN.md), supaya sambungan ke OBS diizinkan browser.</p>
+</form>
+
+<div id="app" class="hide">
+  <div class="panel">
+    <div class="bar"><span class="badge" id="live">OFF AIR</span><span id="tm">00:00:00</span></div>
+    <div id="prog"><img id="pimg" alt=""><span class="tag">PROGRAM</span><span class="nm" id="pnm"></span></div>
+    <button class="btn" id="go">MULAI SIARAN</button>
+  </div>
+  <div class="panel"><h2>GANTI KAMERA (ketuk)</h2><div id="scenes"></div></div>
+  <div class="panel" id="ovp"><h2>OVERLAY</h2><div id="ovs"></div><p class="tip">Statistik layar penuh diatur dari panel panitia (Tampilkan statistik).</p></div>
+  <div class="panel"><h2>PERTANDINGAN</h2><div class="match" id="match"><small>Memuat...</small></div><div class="tip" id="mtip"></div>
+    <a class="lnk" href="admin.html" target="_blank" rel="noopener">Buka panel skor panitia &rsaquo;</a></div>
+  <button class="btn ghost" id="dc">PUTUSKAN SAMBUNGAN</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="js/config.js"></script><script src="js/core.js"></script>
+<script>
+(function () {
+  /* ====== PENGATURAN ======
+     OVERLAY: nama sumber (Browser Source) di OBS yang boleh dinyalakan/dimatikan.
+     Sumber yang sama harus ada di tiap scene kamera. Kosongkan [] jika tidak dipakai. */
+  var OVERLAYS = ['Overlay Skor'];
+  var HIDE_SCENE = /^_/;           // scene berawalan _ tidak ditampilkan sebagai tombol kamera
+
+  var $ = function (id) { return document.getElementById(id); };
+  var ws = null, pending = {}, rid = 0, scenes = [], cur = '', streaming = false, ovState = {};
+  var thumbTimer = null, statTimer = null, retry = 0, want = false, ti = 0, wake = null;
+
+  /* ---- SHA-256 murni JS (browser tidak memberi crypto.subtle di http://) ---- */
+  function sha256(msg) {
+    var H = [], K = [], i, p = 2, n = 0;
+    function isP(x) { for (var d = 2; d * d <= x; d++) if (x % d === 0) return false; return true; }
+    for (; n < 64; p++) if (isP(p)) { if (n < 8) H[n] = (Math.sqrt(p) % 1 * 4294967296) | 0; K[n] = (Math.cbrt(p) % 1 * 4294967296) | 0; n++; }
+    var l = msg.length, nb = ((l + 9 + 63) >> 6) << 6, buf = new Uint8Array(nb); buf.set(msg); buf[l] = 128;
+    var dv = new DataView(buf.buffer); dv.setUint32(nb - 4, (l * 8) >>> 0); dv.setUint32(nb - 8, Math.floor(l * 8 / 4294967296));
+    var w = new Array(64);
+    for (var off = 0; off < nb; off += 64) {
+      for (i = 0; i < 16; i++) w[i] = dv.getUint32(off + i * 4);
+      for (i = 16; i < 64; i++) {
+        var a = w[i - 15], b = w[i - 2];
+        w[i] = (w[i - 16] + ((a >>> 7 | a << 25) ^ (a >>> 18 | a << 14) ^ (a >>> 3)) + w[i - 7] + ((b >>> 17 | b << 15) ^ (b >>> 19 | b << 13) ^ (b >>> 10))) | 0;
+      }
+      var h = H.slice();
+      for (i = 0; i < 64; i++) {
+        var e = h[4], A = h[0];
+        var t1 = (h[7] + ((e >>> 6 | e << 26) ^ (e >>> 11 | e << 21) ^ (e >>> 25 | e << 7)) + ((e & h[5]) ^ (~e & h[6])) + K[i] + w[i]) | 0;
+        var t2 = (((A >>> 2 | A << 30) ^ (A >>> 13 | A << 19) ^ (A >>> 22 | A << 10)) + ((A & h[1]) ^ (A & h[2]) ^ (h[1] & h[2]))) | 0;
+        h = [(t1 + t2) | 0, h[0], h[1], h[2], (h[3] + t1) | 0, h[4], h[5], h[6]];
+      }
+      for (i = 0; i < 8; i++) H[i] = (H[i] + h[i]) | 0;
+    }
+    var out = new Uint8Array(32), o = new DataView(out.buffer); for (i = 0; i < 8; i++) o.setUint32(i * 4, H[i]); return out;
+  }
+  function b64(u8) { var s = ''; for (var i = 0; i < u8.length; i++) s += String.fromCharCode(u8[i]); return btoa(s); }
+  function enc(s) { return new TextEncoder().encode(s); }
+  window.__sha256 = sha256;
+
+  /* ---- UI helper ---- */
+  function msg(t) { $('msg').innerHTML = t ? '<b>' + String(t).replace(/</g, '&lt;') + '</b>' : ''; }
+  function status(t, cls) { $('st').textContent = t; $('dot').className = 'dot ' + (cls || ''); }
+  function show(connected) { $('app').classList.toggle('hide', !connected); $('conn').classList.toggle('hide', connected); }
+
+  /* ---- protokol OBS WebSocket v5 ---- */
+  function req(type, data) {
+    return new Promise(function (res, rej) {
+      if (!ws || ws.readyState !== 1) return rej(new Error('Tidak tersambung'));
+      var id = 'r' + (++rid); pending[id] = { res: res, rej: rej };
+      ws.send(JSON.stringify({ op: 6, d: { requestType: type, requestId: id, requestData: data || {} } }));
+      setTimeout(function () { if (pending[id]) { delete pending[id]; rej(new Error('Waktu habis')); } }, 8000);
+    });
+  }
+  function connect() {
+    var host = $('host').value.trim(), port = $('port').value.trim() || '4455', pw = $('pw').value;
+    if (!host) return msg('Isi alamat laptop dulu.');
+    try { localStorage.setItem('vjt-ctl', JSON.stringify({ host: host, port: port, pw: pw })); } catch (e) {}
+    msg(''); status('Menyambung...', 'wait'); want = true;
+    try { ws = new WebSocket('ws://' + host + ':' + port); } catch (e) { return fail('Alamat tidak valid.'); }
+    var opened = false;
+    ws.onmessage = function (ev) {
+      var m = JSON.parse(ev.data), d = m.d;
+      if (m.op === 0) {
+        var idf = { rpcVersion: 1 };
+        if (d.authentication) {
+          var secret = b64(sha256(enc(pw + d.authentication.salt)));
+          idf.authentication = b64(sha256(enc(secret + d.authentication.challenge)));
+        }
+        ws.send(JSON.stringify({ op: 1, d: idf }));
+      } else if (m.op === 2) { opened = true; retry = 0; onReady(); }
+      else if (m.op === 5) onEvent(d);
+      else if (m.op === 7) {
+        var p = pending[d.requestId]; if (!p) return; delete pending[d.requestId];
+        d.requestStatus && d.requestStatus.result ? p.res(d.responseData || {}) : p.rej(Object.assign(new Error((d.requestStatus && d.requestStatus.comment) || 'Gagal'), { code: d.requestStatus && d.requestStatus.code }));
+      }
+    };
+    ws.onclose = function (ev) {
+      stopTimers(); show(false);
+      if (!opened && ev.code === 4009) { want = false; return fail('Kata sandi OBS salah.'); }
+      if (want) { status('Terputus, mencoba lagi...', 'wait'); setTimeout(function () { if (want) connect(); }, Math.min(8000, 1000 + retry++ * 1500)); }
+      else status('Belum tersambung', '');
+    };
+    ws.onerror = function () { if (!opened) msg('Tidak bisa menyambung ke OBS. Cek: OBS menyala, WebSocket aktif, alamat/port benar, HP satu WiFi dengan laptop.'); };
+  }
+  function fail(t) { msg(t); status('Belum tersambung', ''); }
+
+  function onReady() {
+    status('Tersambung', 'on'); show(true); msg('');
+    loadScenes().then(refreshOverlays); pollStream();
+    stopTimers();
+    statTimer = setInterval(pollStream, 2000);
+    thumbTimer = setInterval(shot, 1000);
+    try { if (navigator.wakeLock) navigator.wakeLock.request('screen').then(function (w) { wake = w; }).catch(function () {}); } catch (e) {}
+  }
+  function stopTimers() { clearInterval(statTimer); clearInterval(thumbTimer); }
+  function onEvent(e) {
+    if (e.eventType === 'CurrentProgramSceneChanged') { cur = e.eventData.sceneName; drawScenes(); refreshOverlays(); }
+    else if (e.eventType === 'SceneListChanged' || e.eventType === 'SceneCreated' || e.eventType === 'SceneRemoved' || e.eventType === 'SceneNameChanged') loadScenes();
+    else if (e.eventType === 'StreamStateChanged') { setStream(e.eventData.outputActive); pollStream(); }
+  }
+
+  /* ---- scene / kamera ---- */
+  function loadScenes() {
+    return req('GetSceneList').then(function (r) {
+      cur = r.currentProgramSceneName;
+      scenes = r.scenes.slice().sort(function (a, b) { return b.sceneIndex - a.sceneIndex; }).map(function (s) { return s.sceneName; }).filter(function (n) { return !HIDE_SCENE.test(n); });
+      drawScenes();
+    }).catch(function (e) { msg('Gagal membaca scene: ' + e.message); });
+  }
+  var thumbs = {};
+  function drawScenes() {
+    $('scenes').innerHTML = '';
+    scenes.forEach(function (n) {
+      var b = document.createElement('button'); b.className = 'sc' + (n === cur ? ' on' : ''); b.type = 'button';
+      var im = document.createElement('img'); im.alt = ''; if (thumbs[n]) im.src = thumbs[n]; im.dataset.s = n;
+      var sp = document.createElement('span'); sp.textContent = n;
+      b.appendChild(im); b.appendChild(sp);
+      b.onclick = function () { if (n === cur) return; req('SetCurrentProgramScene', { sceneName: n }).catch(function (e) { msg('Gagal ganti kamera: ' + e.message); }); };
+      $('scenes').appendChild(b);
+    });
+    $('pnm').textContent = cur;
+  }
+  function grab(name, w, h, q) {
+    return req('GetSourceScreenshot', { sourceName: name, imageFormat: 'jpg', imageWidth: w, imageHeight: h, imageCompressionQuality: q }).then(function (r) { return r.imageData; });
+  }
+  var busy = false;
+  function shot() {
+    if (busy || document.hidden || !scenes.length) return; busy = true;
+    // program tiap detik; satu thumbnail scene bergiliran
+    var jobs = [grab(cur, 640, 360, 55).then(function (d) { $('pimg').src = d; })];
+    var n = scenes[ti++ % scenes.length];
+    if (n !== cur) jobs.push(grab(n, 320, 180, 45).then(function (d) { thumbs[n] = d; var im = document.querySelector('#scenes img[data-s="' + n.replace(/"/g, '\\"') + '"]'); if (im) im.src = d; }));
+    else thumbs[n] = $('pimg').src;
+    Promise.all(jobs).catch(function () {}).then(function () { busy = false; });
+  }
+
+  /* ---- siaran ---- */
+  function setStream(on) {
+    streaming = on; $('live').textContent = on ? 'ON AIR' : 'OFF AIR'; $('live').className = 'badge' + (on ? ' live' : '');
+    $('go').textContent = on ? 'STOP SIARAN' : 'MULAI SIARAN'; $('go').className = 'btn' + (on ? ' red' : '');
+  }
+  function pollStream() {
+    req('GetStreamStatus').then(function (r) {
+      setStream(r.outputActive);
+      $('tm').textContent = r.outputActive ? String(r.outputTimecode || '').split('.')[0] : '00:00:00';
+      if (r.outputActive && r.outputReconnecting) status('Siaran menyambung ulang...', 'wait'); else if (ws && ws.readyState === 1) status('Tersambung', 'on');
+    }).catch(function () {});
+  }
+  $('go').onclick = function () {
+    if (streaming) { if (!confirm('Hentikan siaran sekarang?')) return; req('StopStream').catch(function (e) { msg('Gagal: ' + e.message); }); }
+    else { if (!confirm('Mulai siaran ke YouTube sekarang?')) return; req('StartStream').catch(function (e) { msg('Gagal mulai siaran: ' + e.message + '. Cek pengaturan Stream di OBS.'); }); }
+  };
+
+  /* ---- overlay (nyalakan/matikan di semua scene) ---- */
+  function itemId(scene, src) { return req('GetSceneItemId', { sceneName: scene, sourceName: src }).then(function (r) { return r.sceneItemId; }).catch(function () { return null; }); }
+  function refreshOverlays() {
+    $('ovp').classList.toggle('hide', !OVERLAYS.length); if (!OVERLAYS.length || !cur) return;
+    Promise.all(OVERLAYS.map(function (src) {
+      return itemId(cur, src).then(function (id) {
+        if (id == null) return { src: src, on: null };
+        return req('GetSceneItemEnabled', { sceneName: cur, sceneItemId: id }).then(function (r) { return { src: src, on: r.sceneItemEnabled }; });
+      });
+    })).then(function (list) {
+      $('ovs').innerHTML = '';
+      list.forEach(function (o) {
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'ov' + (o.on ? ' on' : '');
+        b.textContent = o.src + (o.on == null ? ' (tidak ada di scene ini)' : o.on ? ': TAMPIL' : ': SEMBUNYI'); b.disabled = o.on == null;
+        b.onclick = function () { toggleOverlay(o.src, !o.on); };
+        $('ovs').appendChild(b);
+      });
+    });
+  }
+  function toggleOverlay(src, on) {
+    var all = scenes.concat(cur && scenes.indexOf(cur) < 0 ? [cur] : []);
+    Promise.all(all.map(function (s) { return itemId(s, src).then(function (id) { return id == null ? null : req('SetSceneItemEnabled', { sceneName: s, sceneItemId: id, sceneItemEnabled: on }); }).catch(function () {}); })).then(refreshOverlays);
+  }
+
+  /* ---- info pertandingan (Supabase, opsional) ---- */
+  function loadMatch() {
+    var V = window.VJT; if (!V || !V.sb) { $('match').innerHTML = '<small>Skor belum tersambung ke database</small>'; return; }
+    Promise.resolve(V.sb.from('matches').select('*').in('status', ['LIVE', 'HALF TIME']).order('kickoff')).then(function (r) {
+      var m = r.data && r.data[0];
+      $('match').innerHTML = m ? '<span>' + V.esc(m.team_a) + '</span><span class="s">' + m.score_a + ' - ' + m.score_b + '</span><span style="text-align:right">' + V.esc(m.team_b) + '</span>' +
+        '' : '<small>Belum ada pertandingan LIVE</small>';
+      $('mtip').innerHTML = m ? V.esc(V.STATUS_LABEL[m.status] || m.status) + ' &middot; ' + V.fmtClock(V.elapsed(m, Date.now())) : '';
+    }).catch(function () {});
+  }
+  setInterval(function () { if (!$('app').classList.contains('hide')) loadMatch(); }, 5000);
+
+  /* ---- start ---- */
+  $('conn').onsubmit = function (e) { e.preventDefault(); connect(); };
+  $('dc').onclick = function () { want = false; if (ws) ws.close(); try { if (wake) wake.release(); } catch (e) {} };
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && ws && ws.readyState === 1) { loadScenes(); pollStream(); } });
+  try {
+    var sv = JSON.parse(localStorage.getItem('vjt-ctl') || 'null');
+    if (sv) { $('host').value = sv.host; $('port').value = sv.port; $('pw').value = sv.pw; }
+  } catch (e) {}
+  if (!$('host').value && location.hostname) $('host').value = location.hostname;
+  if (!$('pw').value && location.search.indexOf('auto') < 0) { /* menunggu input */ }
+  if ($('host').value && $('pw').value) connect();
+  loadMatch();
+})();
+</script>
+</body>
+</html>
