@@ -79,7 +79,7 @@ a.lnk{color:var(--gold);font-weight:800;font-size:.85rem}
     <button class="btn" id="go">MULAI SIARAN</button>
   </div>
   <div class="panel"><h2>GANTI KAMERA (ketuk)</h2><div id="scenes"></div></div>
-  <div class="panel" id="ovp"><h2>OVERLAY</h2><div id="ovs"></div><p class="tip">Statistik layar penuh diatur dari panel panitia (Tampilkan statistik).</p></div>
+  <div class="panel" id="ovp"><h2>OVERLAY (Browser Source di OBS)</h2><div id="ovs"></div><p class="tip">Ketuk untuk tampil/sembunyi di semua scene. Statistik layar penuh juga bisa diatur dari panel panitia.</p></div>
   <div class="panel"><h2>SKOR PERTANDINGAN</h2><a class="lnk" id="adm" href="admin.html" target="_blank" rel="noopener">Buka panel skor panitia &rsaquo;</a><p class="tip">Catat gol, kartu, dan status pertandingan di panel ini. Skor di atas ikut berubah otomatis.</p></div>
   <button class="btn ghost" id="dc">PUTUSKAN SAMBUNGAN</button>
 </div>
@@ -88,9 +88,7 @@ a.lnk{color:var(--gold);font-weight:800;font-size:.85rem}
 <script>
 (function () {
   /* ====== PENGATURAN ======
-     OVERLAY: nama sumber (Browser Source) di OBS yang boleh dinyalakan/dimatikan.
-     Sumber yang sama harus ada di tiap scene kamera. Kosongkan [] jika tidak dipakai. */
-  var OVERLAYS = ['Overlay Skor'];
+     Overlay (Browser Source) dikenali otomatis dari OBS. */
   var HIDE_SCENE = /^_/;           // scene berawalan _ tidak ditampilkan sebagai tombol kamera
 
   var $ = function (id) { return document.getElementById(id); };
@@ -240,28 +238,56 @@ a.lnk{color:var(--gold);font-weight:800;font-size:.85rem}
     else { if (!confirm('Mulai siaran ke YouTube sekarang?')) return; req('StartStream').catch(function (e) { msg('Gagal mulai siaran: ' + e.message + '. Cek pengaturan Stream di OBS.'); }); }
   };
 
-  /* ---- overlay (nyalakan/matikan di semua scene) ---- */
-  function itemId(scene, src) { return req('GetSceneItemId', { sceneName: scene, sourceName: src }).then(function (r) { return r.sceneItemId; }).catch(function () { return null; }); }
+  /* ---- overlay: otomatis mengenali semua Browser Source di OBS ---- */
+  function sceneItems(sc) { return req('GetSceneItemList', { sceneName: sc }).then(function (r) { return r.sceneItems || []; }).catch(function () { return []; }); }
   function refreshOverlays() {
-    $('ovp').classList.toggle('hide', !OVERLAYS.length); if (!OVERLAYS.length || !cur) return;
-    Promise.all(OVERLAYS.map(function (src) {
-      return itemId(cur, src).then(function (id) {
-        if (id == null) return { src: src, on: null };
-        return req('GetSceneItemEnabled', { sceneName: cur, sceneItemId: id }).then(function (r) { return { src: src, on: r.sceneItemEnabled }; });
+    if (!cur) return;
+    var all = scenes.slice(); if (all.indexOf(cur) < 0) all.push(cur);
+    Promise.all(all.map(sceneItems)).then(function (lists) {
+      var map = {}, names = [];
+      all.forEach(function (sc, i) {
+        map[sc] = {};
+        lists[i].forEach(function (it) {
+          if (it.inputKind !== 'browser_source') return;
+          map[sc][it.sourceName] = { id: it.sceneItemId, on: it.sceneItemEnabled };
+          if (names.indexOf(it.sourceName) < 0) names.push(it.sourceName);
+        });
       });
-    })).then(function (list) {
-      $('ovs').innerHTML = '';
-      list.forEach(function (o) {
-        var b = document.createElement('button'); b.type = 'button'; b.className = 'ov' + (o.on ? ' on' : '');
-        b.textContent = o.src + (o.on == null ? ' (tidak ada di scene ini)' : o.on ? ': TAMPIL' : ': SEMBUNYI'); b.disabled = o.on == null;
-        b.onclick = function () { toggleOverlay(o.src, !o.on); };
-        $('ovs').appendChild(b);
+      var box = $('ovs'); box.innerHTML = '';
+      if (!names.length) { box.innerHTML = '<p class="tip">Belum ada Browser Source (overlay) di OBS. Tambahkan di OBS: Sources (+) &gt; Browser.</p>'; return; }
+      var missingAny = false;
+      names.forEach(function (n) {
+        var here = map[cur][n], b = document.createElement('button'); b.type = 'button';
+        all.forEach(function (sc) { if (!map[sc][n]) missingAny = true; });
+        if (here) {
+          b.className = 'ov' + (here.on ? ' on' : ''); b.textContent = n + (here.on ? ': TAMPIL' : ': SEMBUNYI');
+          b.onclick = function () { toggleOverlay(map, all, n, !here.on); };
+        } else {
+          b.className = 'ov'; b.textContent = n + ': belum ada di scene ini. Ketuk untuk memasang';
+          b.onclick = function () { addOverlay([cur], n); };
+        }
+        box.appendChild(b);
       });
+      if (missingAny) {
+        var ab = document.createElement('button'); ab.type = 'button'; ab.className = 'btn ghost'; ab.style.gridColumn = '1/-1';
+        ab.textContent = 'PASANG OVERLAY DI SEMUA SCENE';
+        ab.onclick = function () { addAll(map, all, names); };
+        box.appendChild(ab);
+      }
     });
   }
-  function toggleOverlay(src, on) {
-    var all = scenes.concat(cur && scenes.indexOf(cur) < 0 ? [cur] : []);
-    Promise.all(all.map(function (s) { return itemId(s, src).then(function (id) { return id == null ? null : req('SetSceneItemEnabled', { sceneName: s, sceneItemId: id, sceneItemEnabled: on }); }).catch(function () {}); })).then(refreshOverlays);
+  function addOverlay(targets, name) {
+    return Promise.all(targets.map(function (sc) {
+      return req('CreateSceneItem', { sceneName: sc, sourceName: name, sceneItemEnabled: true }).catch(function (e) { msg('Gagal memasang ' + name + ': ' + e.message); });
+    })).then(refreshOverlays);
+  }
+  function addAll(map, all, names) {
+    var jobs = [];
+    names.forEach(function (n) { all.forEach(function (sc) { if (!map[sc][n]) jobs.push(req('CreateSceneItem', { sceneName: sc, sourceName: n, sceneItemEnabled: true }).catch(function (e) { msg('Gagal memasang ' + n + ': ' + e.message); })); }); });
+    Promise.all(jobs).then(refreshOverlays);
+  }
+  function toggleOverlay(map, all, name, on) {
+    Promise.all(all.map(function (sc) { var it = map[sc][name]; return it ? req('SetSceneItemEnabled', { sceneName: sc, sceneItemId: it.id, sceneItemEnabled: on }).catch(function () {}) : null; })).then(refreshOverlays);
   }
 
   /* ---- skor & jam (langsung dari database, tanpa overlay OBS) ---- */
