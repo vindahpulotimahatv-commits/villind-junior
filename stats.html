@@ -137,7 +137,7 @@ function load() {
     });
   });
 }
-load();
+V.loadTeamLogos().then(function () { load(); });
 if (!demo) {
   setInterval(load, 3000);
   if (V.sb) V.sb.channel('vjt-stats').on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, load)

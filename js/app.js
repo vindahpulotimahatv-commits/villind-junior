@@ -18,7 +18,22 @@
   }
   function loadEvents(id) {
     if (!V.sb || String(id).indexOf('seed-') === 0) return Promise.resolve([]);
-    return V.sb.from('match_events').select('*').eq('match_id', id).order('created_at').then(function (r) { return r.data || []; });
+    return V.sb.from('match_events').select('*').eq('match_id', id).order('created_at').then(function (r) { state.events[id] = r.data || []; return state.events[id]; });
+  }
+  // Hitung pelanggaran dan kartu dari daftar kejadian.
+  function discCount(evs) {
+    var cnt = { A: { f: 0, y: 0, r: 0 }, B: { f: 0, y: 0, r: 0 } };
+    (evs || []).forEach(function (e) {
+      var c = cnt[e.team]; if (!c) return;
+      if (e.type === 'foul') c.f++; else if (e.type === 'card') { if (/merah/i.test(e.note || '')) c.r++; else c.y++; }
+    });
+    return cnt;
+  }
+  function discHtml(cnt) {
+    return '<div class="mstats">' +
+      '<b>' + cnt.A.f + '</b><span>Pelanggaran</span><b>' + cnt.B.f + '</b>' +
+      '<b class="yc">' + cnt.A.y + '</b><span>Kartu kuning</span><b class="yc">' + cnt.B.y + '</b>' +
+      '<b class="rc">' + cnt.A.r + '</b><span>Kartu merah</span><b class="rc">' + cnt.B.r + '</b></div>';
   }
   function byId(id) { return state.matches.filter(function (m) { return String(m.id) === String(id); })[0]; }
   function live() { return state.matches.filter(function (m) { return m.status === 'LIVE' || m.status === 'HALF TIME'; }); }
@@ -139,9 +154,18 @@
   function livePage() {
     var lv = live(), yt = V.youtubeEmbed(state.settings.youtube_url);
     view.innerHTML = '<section><div class="wrap">' + demoNote() + '<h2>Live</h2>' +
-      (lv.length ? lv.map(card).join('') : '<div class="empty">BELUM ADA PERTANDINGAN LIVE</div>') +
+      (lv.length ? lv.map(function (m) {
+        return card(m) + '<div class="live-stats" data-ms="' + esc(m.id) + '">' + discHtml(discCount(state.events[m.id])) + '</div>';
+      }).join('') : '<div class="empty">BELUM ADA PERTANDINGAN LIVE</div>') +
       '<h2 style="margin-top:18px">Siaran langsung</h2>' +
       (yt ? '<iframe class="yt" src="' + yt + '" title="Siaran langsung YouTube" allowfullscreen loading="lazy"></iframe>' : '<div class="empty">Siaran YouTube belum diatur oleh panitia</div>') + '</div></section>';
+    // Ambil kejadian terbaru lalu perbarui angka statistik (angka lama tampil dulu agar tidak berkedip).
+    lv.forEach(function (m) {
+      loadEvents(m.id).then(function (evs) {
+        var el = document.querySelector('.live-stats[data-ms="' + String(m.id).replace(/"/g, '') + '"]');
+        if (el) el.innerHTML = discHtml(discCount(evs));
+      });
+    });
   }
   function matchPage(id) {
     var m = byId(id);
@@ -155,18 +179,8 @@
       '<div id="mstats"></div><h3 class="disp" style="font-size:1.3rem;color:var(--g1);margin-bottom:8px">Kejadian pertandingan</h3><div id="evs"><div class="empty">Memuat...</div></div></div></section>';
     loadEvents(id).then(function (evs) {
       var el = document.getElementById('evs'); if (!el) return;
-      var cnt = { A: { f: 0, y: 0, r: 0 }, B: { f: 0, y: 0, r: 0 } };
-      evs.forEach(function (e) {
-        var c = cnt[e.team]; if (!c) return;
-        if (e.type === 'foul') c.f++; else if (e.type === 'card') { if (/merah/i.test(e.note || '')) c.r++; else c.y++; }
-      });
       var ms = document.getElementById('mstats');
-      if (ms && evs.some(function (e) { return e.type === 'foul' || e.type === 'card'; })) {
-        ms.innerHTML = '<div class="mstats">' +
-          '<b>' + cnt.A.f + '</b><span>Pelanggaran</span><b>' + cnt.B.f + '</b>' +
-          '<b class="yc">' + cnt.A.y + '</b><span>Kartu kuning</span><b class="yc">' + cnt.B.y + '</b>' +
-          '<b class="rc">' + cnt.A.r + '</b><span>Kartu merah</span><b class="rc">' + cnt.B.r + '</b></div>';
-      }
+      if (ms && evs.some(function (e) { return e.type === 'foul' || e.type === 'card'; })) ms.innerHTML = discHtml(discCount(evs));
       var goals = evs.filter(function (e) { return e.type === 'goal' || e.type === 'card'; });
       // gol yang dibatalkan (undo) dihapus dari daftar oleh operator, jadi cukup tampilkan sisanya
       el.innerHTML = goals.length ? goals.map(function (e) {
@@ -208,14 +222,16 @@
     });
   }, 1000);
 
-  load().then(function () {
+  Promise.all([load(), V.loadTeamLogos()]).then(function () {
     var c = state.settings.whatsapp;
     if (c) document.getElementById('foot-contact').innerHTML = '<br>WhatsApp panitia: ' + esc(c);
     route();
     if (V.sb) {
       var refresh = function () { load().then(function () { route(true); }); };
       V.sb.channel('vjt-public').on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, refresh)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'match_events' }, refresh).subscribe();
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'match_events' }, refresh)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'team_logos' }, function () { V.loadTeamLogos().then(function () { route(true); }); })
+        .subscribe();
     }
   });
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});

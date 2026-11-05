@@ -25,7 +25,7 @@
   });
   $('out').onclick = function () { sb.auth.signOut().then(function () { user = null; show(false); }); };
 
-  function boot() { reload(); loadSettings(); sb.channel('vjt-admin').on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, function () { reload(true); }).subscribe(); }
+  function boot() { reload(); loadSettings(); V.loadTeamLogos().then(function () { buildTeamList(); showTeam(); }); sb.channel('vjt-admin').on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, function () { reload(true); }).subscribe(); }
   function reload(keep) {
     sb.from('matches').select('*').order('kickoff').then(function (r) {
       if (r.error) return fail(r.error);
@@ -35,6 +35,7 @@
         return '<option value="' + m.id + '">' + V.fmtDate(m.kickoff).replace(/^\w+, /, '') + ' ' + V.fmtTime(m.kickoff).replace(' WIB', '') + ' | ' + V.CATEGORY_LABEL[m.category] + (V.matchGroup(m) ? ' Grup ' + V.matchGroup(m) : '') + ' | ' + esc(m.team_a) + ' vs ' + esc(m.team_b) + ' | ' + m.status + '</option>';
       }).join('');
       if (keep || prev) $('sel').value = prev;
+      buildTeamList();
       pick();
     });
   }
@@ -52,7 +53,7 @@
     $('fa').textContent = 'Pelanggaran ' + cur.team_a; $('fb').textContent = 'Pelanggaran ' + cur.team_b;
     $('ya').textContent = 'Kuning ' + cur.team_a; $('yb').textContent = 'Kuning ' + cur.team_b;
     $('ra').textContent = 'Merah ' + cur.team_a; $('rb').textContent = 'Merah ' + cur.team_b;
-    loadHist(); loadStats(); drawStatsState();
+    loadHist(); loadStats(); drawStatsState(); fillPlayerList();
   }
   $('sel').onchange = pick;
 
@@ -191,4 +192,163 @@
     var rows = [{ key: 'youtube_url', value: $('s-yt').value.trim() }, { key: 'saweria_url', value: $('s-sa').value.trim() }, { key: 'whatsapp', value: $('s-wa').value.trim() }];
     sb.from('settings').upsert(rows).then(function (r) { if (r.error) return fail(r.error); log('settings', 'pengaturan diubah'); msg('Pengaturan tersimpan', true); });
   };
+
+  /* ---------- tim: logo dan pemain ---------- */
+  var teamNames = [], teamSel = '', players = [], teamsReady = true;
+  function tmMsg(t, ok) { $('tm-msg').innerHTML = t ? '<div class="msg ' + (ok ? 'ok' : 'err') + '">' + esc(t) + '</div>' : ''; if (t && ok) setTimeout(function () { $('tm-msg').innerHTML = ''; }, 3000); }
+  function tmFail(e) {
+    var t = (e && e.message) ? e.message : String(e);
+    if (/relation|does not exist|schema cache|bucket|not found/i.test(t)) return tmMsg('Fitur ini belum aktif di database. Jalankan dulu file supabase/update-tim-pemain.sql di Supabase (SQL Editor), lalu muat ulang halaman ini.');
+    tmMsg('Gagal: ' + t);
+  }
+  function buildTeamList() {
+    var names = [];
+    Object.keys(V.GROUPS).forEach(function (c) { Object.keys(V.GROUPS[c]).forEach(function (g) { V.GROUPS[c][g].forEach(function (n) { if (names.indexOf(n) < 0) names.push(n); }); }); });
+    matches.forEach(function (m) { [m.team_a, m.team_b].forEach(function (n) { if (n && names.indexOf(n) < 0) names.push(n); }); });
+    names.sort(function (a, b) { return a.localeCompare(b, 'id', { numeric: true }); });
+    if (names.join('|') === teamNames.join('|') && $('tm-sel').options.length) return;
+    teamNames = names;
+    var keep = $('tm-sel').value;
+    $('tm-sel').innerHTML = '<option value="">- pilih tim -</option>' + names.map(function (n) { return '<option value="' + esc(n) + '">' + esc(n) + '</option>'; }).join('');
+    if (keep) $('tm-sel').value = keep;
+  }
+  function showTeam() {
+    teamSel = $('tm-sel').value;
+    $('tm-box').classList.toggle('hide', !teamSel);
+    if (!teamSel) return;
+    $('tm-name').textContent = teamSel;
+    var u = V.teamLogo(teamSel);
+    $('tm-logo').style.visibility = u ? 'visible' : 'hidden';
+    if (u) $('tm-logo').src = u;
+    $('tm-logo-note').textContent = V.logoOverrides[V.nameKey(teamSel)] ? 'Logo hasil unggahan panitia.' : (u ? 'Logo bawaan.' : 'Belum ada logo.');
+    $('tm-file').value = '';
+    loadPlayers();
+  }
+  $('tm-sel').onchange = showTeam;
+  $('tm-cat').onchange = loadPlayers;
+
+  function slug(t) { return String(t).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'tim'; }
+  function shrink(file, max) {
+    return new Promise(function (resolve, reject) {
+      var img = new Image(), url = URL.createObjectURL(file);
+      img.onload = function () {
+        var k = Math.min(1, max / Math.max(img.width, img.height)), c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k));
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        c.toBlob(function (b) { b ? resolve(b) : reject(new Error('Gambar gagal diproses')); }, 'image/png');
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('File itu bukan gambar yang bisa dibaca. Pilih file PNG atau JPG.')); };
+      img.src = url;
+    });
+  }
+  $('tm-up').onclick = function () {
+    var f = $('tm-file').files[0], name = teamSel;
+    if (!name) return;
+    if (!f) return tmMsg('Pilih gambar logo dulu.');
+    tmMsg('Mengunggah logo...', true);
+    shrink(f, 400).then(function (blob) {
+      var path = 'team-' + slug(name) + '-' + Date.now() + '.png';
+      return sb.storage.from('logos').upload(path, blob, { contentType: 'image/png', cacheControl: '31536000' }).then(function (r) {
+        if (r.error) throw r.error;
+        var url = sb.storage.from('logos').getPublicUrl(path).data.publicUrl;
+        return sb.from('team_logos').upsert({ name: name, url: url, updated_at: new Date().toISOString() }).then(function (d) {
+          if (d.error) throw d.error;
+          V.logoOverrides[V.nameKey(name)] = url; log('team:logo', name); showTeam(); tmMsg('Logo ' + name + ' tersimpan', true);
+        });
+      });
+    }).catch(tmFail);
+  };
+  $('tm-reset').onclick = function () {
+    var name = teamSel;
+    if (!name) return;
+    if (!V.logoOverrides[V.nameKey(name)]) return tmMsg('Tim ini sudah memakai logo bawaan.');
+    if (!confirm('Kembalikan ' + name + ' ke logo bawaan?')) return;
+    sb.from('team_logos').delete().eq('name', name).then(function (r) {
+      if (r.error) return tmFail(r.error);
+      delete V.logoOverrides[V.nameKey(name)]; log('team:logo-reset', name); showTeam(); tmMsg('Logo dikembalikan ke bawaan', true);
+    });
+  };
+
+  function sortPlayers(a) {
+    return a.slice().sort(function (x, y) {
+      var nx = parseInt(x.no, 10), ny = parseInt(y.no, 10);
+      if (isNaN(nx) && isNaN(ny)) return x.name.localeCompare(y.name, 'id');
+      if (isNaN(nx)) return 1; if (isNaN(ny)) return -1;
+      return nx - ny || x.name.localeCompare(y.name, 'id');
+    });
+  }
+  function drawPlayers() {
+    $('tm-players').innerHTML = players.length ? sortPlayers(players).map(function (p) {
+      return '<div class="prow"><span class="pn' + (p.no ? '' : ' none') + '">' + (p.no ? esc(p.no) : '-') + '</span><span class="pt">' + esc(p.name) + '</span>' +
+        '<button type="button" data-ed="' + esc(p.id) + '">Ubah</button><button type="button" class="del" data-del="' + esc(p.id) + '">Hapus</button></div>';
+    }).join('') : '<div class="empty">Belum ada pemain untuk tim dan kategori ini</div>';
+  }
+  function loadPlayers() {
+    var team = $('tm-sel').value, cat = $('tm-cat').value;
+    if (!team) return;
+    sb.from('team_players').select('*').eq('team', team).eq('category', cat).then(function (r) {
+      if (r.error) { players = []; drawPlayers(); return tmFail(r.error); }
+      players = r.data || []; drawPlayers();
+    });
+  }
+  // "7 Raka", "10. Dimas", "#9 Fajar", "Budi" -> {no, name}
+  function parsePlayers(text) {
+    return String(text || '').split(/\r?\n/).map(function (l) { return l.replace(/^[\s\-*\u2022]+/, '').trim(); }).filter(Boolean).map(function (l) {
+      var m = l.match(/^#?(\d{1,3})\s*[.\-):,]?\s+(.+)$/);
+      if (m) return { no: m[1], name: m[2].trim() };
+      if (/^#?\d{1,3}$/.test(l)) return { no: l.replace('#', ''), name: '#' + l.replace('#', '') };
+      return { no: null, name: l };
+    });
+  }
+  $('tm-add').onclick = function () {
+    var team = $('tm-sel').value, cat = $('tm-cat').value;
+    if (!team) return;
+    var list = parsePlayers($('tm-bulk').value);
+    if (!list.length) return tmMsg('Tempel nama pemain dulu (satu baris satu pemain).');
+    var have = {}; players.forEach(function (p) { have[p.name.toLowerCase()] = 1; });
+    var rows = [];
+    list.forEach(function (p) { var k = p.name.toLowerCase(); if (have[k]) return; have[k] = 1; rows.push({ team: team, category: cat, no: p.no, name: p.name }); });
+    if (!rows.length) return tmMsg('Semua nama itu sudah ada di daftar.');
+    sb.from('team_players').insert(rows).then(function (r) {
+      if (r.error) return tmFail(r.error);
+      log('team:players', team + ' ' + cat + ' +' + rows.length); $('tm-bulk').value = ''; loadPlayers(); fillPlayerList();
+      tmMsg(rows.length + ' pemain ditambahkan' + (list.length > rows.length ? ' (' + (list.length - rows.length) + ' nama sama dilewati)' : ''), true);
+    });
+  };
+  $('tm-clear').onclick = function () {
+    var team = $('tm-sel').value, cat = $('tm-cat').value;
+    if (!team || !players.length) return tmMsg('Belum ada pemain untuk dihapus.');
+    if (!confirm('Hapus SEMUA ' + players.length + ' pemain ' + team + ' (' + V.CATEGORY_LABEL[cat] + ')?')) return;
+    sb.from('team_players').delete().eq('team', team).eq('category', cat).then(function (r) {
+      if (r.error) return tmFail(r.error);
+      log('team:players-clear', team + ' ' + cat); loadPlayers(); fillPlayerList(); tmMsg('Daftar pemain dikosongkan', true);
+    });
+  };
+  $('tm-players').addEventListener('click', function (e) {
+    var d = e.target.getAttribute('data-del'), ed = e.target.getAttribute('data-ed');
+    var p = players.filter(function (x) { return x.id === (d || ed); })[0];
+    if (!p) return;
+    if (d) {
+      if (!confirm('Hapus pemain ' + p.name + '?')) return;
+      sb.from('team_players').delete().eq('id', p.id).then(function (r) { if (r.error) return tmFail(r.error); loadPlayers(); fillPlayerList(); });
+    } else {
+      var nm = prompt('Nama pemain:', p.name); if (nm === null) return; nm = nm.trim(); if (!nm) return tmMsg('Nama tidak boleh kosong.');
+      var no = prompt('Nomor punggung (boleh kosong):', p.no || ''); if (no === null) return; no = no.trim();
+      sb.from('team_players').update({ name: nm, no: no || null }).eq('id', p.id).then(function (r) { if (r.error) return tmFail(r.error); loadPlayers(); fillPlayerList(); });
+    }
+  });
+
+  // Saran nama pemain di kolom "Pemain dan menit" (hanya pemain dari dua tim pertandingan yang dipilih).
+  function fillPlayerList() {
+    var dl = $('pl-list'); dl.innerHTML = '';
+    if (!cur) return;
+    var id = cur.id;
+    sb.from('team_players').select('team,no,name').eq('category', cur.category).in('team', [cur.team_a, cur.team_b]).then(function (r) {
+      if (r.error || !cur || cur.id !== id) return;
+      dl.innerHTML = sortPlayers(r.data || []).map(function (p) {
+        return '<option value="' + esc(p.name) + '" label="' + (p.no ? '#' + esc(p.no) + ' - ' : '') + esc(p.team) + '"></option>';
+      }).join('');
+    });
+  }
 })();

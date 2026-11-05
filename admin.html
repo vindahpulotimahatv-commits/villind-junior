@@ -35,7 +35,7 @@
       </div>
       <div class="panel">
         <h3>Pemain dan menit</h3>
-        <label for="pl">Nama pemain / nomor punggung (boleh kosong)</label><input id="pl" placeholder="Nama panggilan atau nomor punggung">
+        <label for="pl">Nama pemain / nomor punggung (boleh kosong)</label><input id="pl" list="pl-list" autocomplete="off" placeholder="Ketik nama atau pilih dari daftar pemain"><datalist id="pl-list"></datalist>
         <label for="mn">Menit (kosong = otomatis dari timer)</label><input id="mn" type="number" min="0" max="120" inputmode="numeric">
         <p class="hint">Isian ini dipakai untuk gol, pelanggaran, dan kartu di bawah, lalu dikosongkan otomatis.</p>
       </div>
@@ -87,6 +87,28 @@
       <label for="n-a">Tim A</label><input id="n-a"><label for="n-b">Tim B</label><input id="n-b">
       <label for="n-t">Tanggal dan jam (WIB)</label><input id="n-t" type="datetime-local">
       <div class="btns"><button class="btn dark" id="n-add" style="grid-column:1/-1">Simpan pertandingan</button></div>
+    </div>
+
+    <div class="panel">
+      <h3>Tim: logo dan pemain</h3>
+      <div id="tm-msg"></div>
+      <label for="tm-sel">Pilih tim</label><select id="tm-sel"></select>
+      <div id="tm-box" class="hide">
+        <div class="tm-head"><img id="tm-logo" alt="Logo tim"><div><b id="tm-name"></b><div class="hint" id="tm-logo-note"></div></div></div>
+        <label for="tm-file">Ganti logo (pilih gambar PNG atau JPG dari HP / komputer)</label>
+        <input id="tm-file" type="file" accept="image/*">
+        <div class="btns"><button class="btn dark" id="tm-up" type="button">Simpan logo</button><button class="btn" id="tm-reset" type="button">Kembalikan logo bawaan</button></div>
+
+        <h3 style="margin-top:18px">Pemain</h3>
+        <label for="tm-cat">Kategori</label>
+        <select id="tm-cat"><option value="U11">U-11</option><option value="U15">U-15</option></select>
+        <div id="tm-players" class="plist"></div>
+        <label for="tm-bulk">Tambah pemain (tempel daftar, satu baris satu pemain)</label>
+        <textarea id="tm-bulk" rows="6" placeholder="7 Raka&#10;10 Dimas&#10;Fajar"></textarea>
+        <p class="hint">Boleh pakai nomor punggung di depan nama (contoh: <b>7 Raka</b>) atau nama saja. Nama yang sudah ada tidak dobel.</p>
+        <div class="btns"><button class="btn dark" id="tm-add" type="button" style="grid-column:1/-1">Tambah ke daftar pemain</button></div>
+        <div class="btns"><button class="btn red" id="tm-clear" type="button" style="grid-column:1/-1">Hapus semua pemain tim ini</button></div>
+      </div>
     </div>
 
     <div class="panel">

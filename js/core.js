@@ -22,7 +22,12 @@
 
   // Logo tim. RT yang sama (U-11 dan U-15) memakai satu logo yang sama.
   var TEAM_LOGO_EXTRA = { 'villind a': 'villind-a', 'villind b': 'villind-b', 'villipo rw.14': 'villipo-rw14' };
+  // Logo hasil unggahan panitia (tabel team_logos). Jika ada, dipakai menggantikan logo bawaan.
+  var logoOverrides = {};
+  function nameKey(name) { return String(name || '').trim().toLowerCase().replace(/\s+/g, ' '); }
   function teamLogo(name) {
+    var ov = logoOverrides[nameKey(name)];
+    if (ov) return ov;
     var n = String(name || '').trim().toLowerCase(), m = n.match(/^rt\s*0*(\d+)/);
     var f = m ? 'rt' + ('00' + m[1]).slice(-3) : TEAM_LOGO_EXTRA[n];
     return f ? 'icons/teams/' + f + '.png' : null;
@@ -82,7 +87,21 @@
       .sort(function (x, y) { return y.pts - x.pts || y.gd - x.gd || y.gf - x.gf || x.ord - y.ord; });
   }
 
-  var api = { teamLogo: teamLogo, logoImg: logoImg, GROUPS: GROUPS, groupOf: groupOf, matchGroup: matchGroup, CATEGORY_LABEL: CATEGORY_LABEL, STATUS_LABEL: STATUS_LABEL, esc: esc, elapsed: elapsed, fmtClock: fmtClock,
+  // Ambil daftar logo hasil unggahan. Tidak pernah gagal: jika tabel belum dibuat, logo bawaan tetap dipakai.
+  function loadTeamLogos() {
+    var sb = api.sb;
+    if (!sb) return Promise.resolve();
+    try {
+      return Promise.resolve(sb.from('team_logos').select('name,url')).then(function (r) {
+        if (!r || r.error || !r.data) return;
+        var o = {}; r.data.forEach(function (x) { if (x.name && x.url) o[nameKey(x.name)] = x.url; });
+        Object.keys(logoOverrides).forEach(function (k) { delete logoOverrides[k]; });
+        Object.keys(o).forEach(function (k) { logoOverrides[k] = o[k]; });
+      }).catch(function () {});
+    } catch (e) { return Promise.resolve(); }
+  }
+
+  var api = { loadTeamLogos: loadTeamLogos, logoOverrides: logoOverrides, nameKey: nameKey, teamLogo: teamLogo, logoImg: logoImg, GROUPS: GROUPS, groupOf: groupOf, matchGroup: matchGroup, CATEGORY_LABEL: CATEGORY_LABEL, STATUS_LABEL: STATUS_LABEL, esc: esc, elapsed: elapsed, fmtClock: fmtClock,
     fmtDate: fmtDate, fmtTime: fmtTime, dayKey: dayKey, youtubeEmbed: youtubeEmbed, standings: standings };
 
   if (typeof window !== 'undefined') {

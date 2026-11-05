@@ -195,3 +195,20 @@ html.no-splash #splash{display:none!important}
 @keyframes splashpulse{50%{transform:scale(1.06)}}
 #splash-skip{position:absolute;right:14px;top:calc(14px + env(safe-area-inset-top,0px));background:#000a;color:#fff;border:1px solid #fff6;border-radius:99px;padding:8px 14px;font-family:"Barlow Condensed",sans-serif;font-weight:800;font-size:.9rem;letter-spacing:.06em;cursor:pointer;backdrop-filter:blur(6px)}
 html.splash-on,html.splash-on body{overflow:hidden}
+
+/* statistik di tab Live */
+.live-stats{margin:-3px 0 13px}.live-stats .mstats{margin:0;border-top-left-radius:6px;border-top-right-radius:6px}
+
+/* admin: logo dan pemain */
+textarea{width:100%;font:inherit;padding:11px;border:1px solid #5076a4;border-radius:9px;background:#061326;color:#fff;resize:vertical}
+input[type=file]{padding:9px;min-height:44px}
+.tm-head{display:flex;align-items:center;gap:12px;margin:12px 0 4px}
+.tm-head img{height:88px;width:auto;max-width:120px;object-fit:contain;background:#0b1f38;border-radius:10px;padding:6px}
+.tm-head b{font-size:1.05rem}
+.plist{margin:8px 0}
+.prow{display:flex;align-items:center;gap:8px;background:#0b1f38;border-radius:9px;padding:7px 9px;margin-bottom:5px}
+.prow .pn{min-width:34px;text-align:center;font-weight:900;color:#101923;background:var(--gold);border-radius:6px;padding:1px 6px;font-size:.85rem}
+.prow .pn.none{background:#23466e;color:#fff}
+.prow .pt{flex:1;font-weight:700;overflow-wrap:anywhere}
+.prow button{border:1px solid #5076a4;background:#12345b;color:#fff;border-radius:8px;font:inherit;font-size:.78rem;font-weight:800;padding:6px 9px;min-height:34px}
+.prow button.del{background:#8f1115;border-color:#d4262b}

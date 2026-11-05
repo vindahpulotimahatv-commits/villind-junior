@@ -66,3 +66,11 @@ Pengaturan Data Source di vMix perlu dicoba langsung di komputer siaran.
 
 ## Belum dibuat
 Berita, galeri, profil tim/pemain, top scorer, bracket visual, role terpisah (Operator/Editor), dan overlay vMix siap pakai. Ini bisa dilanjutkan setelah turnamen berjalan.
+
+## Update: logo tim, daftar pemain, kartu di overlay, statistik di tab Live
+
+1. Jalankan SEKALI file `supabase/update-tim-pemain.sql` di Supabase > SQL Editor > New query > Run.
+2. Admin > "Tim: logo dan pemain": ganti logo tim (unggah gambar) dan tempel daftar pemain (satu baris satu pemain, contoh `7 Raka`).
+3. Saat mencatat gol/kartu, kolom nama pemain menampilkan saran dari daftar pemain dua tim yang bertanding.
+4. `overlay.html` kini menampilkan kartu kuning/merah di samping nama tim. Uji tampilan: `overlay.html?demo=1`.
+5. Tab Live di website menampilkan statistik (pelanggaran, kartu kuning, kartu merah) di bawah tiap pertandingan live.
