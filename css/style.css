@@ -180,3 +180,18 @@ table.st td.stt{white-space:nowrap}
 .card .row{padding:4px 0}
 table.st td.stt{display:flex;align-items:center;min-width:150px}
 .tlogo.xs{width:34px;object-fit:contain}
+
+/* Splash pembuka (video + suara) */
+html.no-splash #splash{display:none!important}
+#splash{position:fixed;inset:0;z-index:9999;background:#000;display:flex;align-items:center;justify-content:center;transition:opacity .6s ease}
+#splash.out{opacity:0;pointer-events:none}
+#splash video{width:100%;height:100%;object-fit:cover;background:#000}
+@media (min-width:760px){#splash video{width:auto;max-width:100%;aspect-ratio:9/16;object-fit:cover}}
+#splash-start{position:absolute;inset:0;border:0;background:radial-gradient(circle at 50% 40%,#12335a,#030b18 75%);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;cursor:pointer;font:inherit;padding:24px;text-align:center}
+#splash-start[hidden],#splash-skip[hidden]{display:none}
+#splash-start img{width:112px;height:112px;object-fit:cover;border-radius:50%;border:3px solid var(--gold);box-shadow:0 0 34px #ffc62988}
+#splash-start b{font-size:1.5rem;font-weight:900;line-height:1}
+.splash-tap{background:linear-gradient(135deg,#ffe26b,#f4a900);color:#111827;font-family:"Barlow Condensed",sans-serif;font-weight:900;font-size:1.15rem;letter-spacing:.06em;padding:12px 24px;border-radius:99px;animation:splashpulse 1.4s infinite}
+@keyframes splashpulse{50%{transform:scale(1.06)}}
+#splash-skip{position:absolute;right:14px;top:calc(14px + env(safe-area-inset-top,0px));background:#000a;color:#fff;border:1px solid #fff6;border-radius:99px;padding:8px 14px;font-family:"Barlow Condensed",sans-serif;font-weight:800;font-size:.9rem;letter-spacing:.06em;cursor:pointer;backdrop-filter:blur(6px)}
+html.splash-on,html.splash-on body{overflow:hidden}

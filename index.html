@@ -13,8 +13,18 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=Barlow:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
+<script>try{if(sessionStorage.getItem("vjt-splash")){document.documentElement.className+=" no-splash"}}catch(e){}</script>
 </head>
 <body>
+<div id="splash" role="dialog" aria-label="Pembuka Villind Junior Tournament">
+  <video id="splash-video" src="media/splash.mp4" poster="media/splash-poster.jpg" playsinline webkit-playsinline preload="auto"></video>
+  <button id="splash-start" type="button" hidden>
+    <img src="icons/villind-shield.jpg" alt="">
+    <b class="disp">VILLIND JUNIOR TOURNAMENT</b>
+    <span class="splash-tap">&#9654; KETUK UNTUK MASUK</span>
+  </button>
+  <button id="splash-skip" type="button" hidden>LEWATI &#9654;&#9654;</button>
+</div>
 <header class="top"><div class="wrap">
   <img src="icons/villind-shield.jpg" alt="Logo VILLIND">
   <div class="brand"><div class="nm disp">VILLIND JUNIOR<br>TOURNAMENT</div><small>DEVELOPING YOUNG TALENT, BUILDING FUTURE CHAMPIONS</small></div>
@@ -35,5 +45,6 @@
   <a href="#/info" data-r="info"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>INFO</a>
 </nav>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="js/splash.js"></script>
 <script src="js/config.js"></script><script src="js/seed.js"></script><script src="js/core.js"></script><script src="js/app.js"></script>
 </body></html>
