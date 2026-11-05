@@ -176,7 +176,8 @@
       '<div class="grid"><div class="tm">' + V.logoImg(m.team_a, 'lg') + '<div>' + esc(m.team_a) + '</div></div><div class="big">' + (started ? m.score_a + '-' + m.score_b : 'VS') + '</div><div class="tm">' + V.logoImg(m.team_b, 'lg') + '<div>' + esc(m.team_b) + '</div></div></div>' +
       (m.status === 'LIVE' ? '<div class="clock" data-clock="' + esc(m.id) + '">' + V.fmtClock(V.elapsed(m, Date.now())) + '</div>' : '') +
       '<div>' + pill(m) + '</div><div style="margin-top:8px;font-size:.9rem;opacity:.85">' + V.fmtDate(m.kickoff) + ', ' + V.fmtTime(m.kickoff) + '</div></div>' +
-      '<div id="mstats"></div><h3 class="disp" style="font-size:1.3rem;color:var(--g1);margin-bottom:8px">Kejadian pertandingan</h3><div id="evs"><div class="empty">Memuat...</div></div></div></section>';
+      '<div id="mstats"></div><div id="lineup"></div><h3 class="disp" style="font-size:1.3rem;color:var(--gold);margin-bottom:8px">Kejadian pertandingan</h3><div id="evs"><div class="empty">Memuat...</div></div></div></section>';
+    if (V.renderLineup) V.renderLineup(document.getElementById('lineup'), m);
     loadEvents(id).then(function (evs) {
       var el = document.getElementById('evs'); if (!el) return;
       var ms = document.getElementById('mstats');
