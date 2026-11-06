@@ -147,12 +147,22 @@
   $('stats-show').onclick = function () { saveSetting([{ key: 'stats_match', value: cur.id }, { key: 'stats_visible', value: '1' }], function () { msg('Statistik ditampilkan di layar', true); }); };
   $('stats-hide').onclick = function () { saveSetting([{ key: 'stats_visible', value: '0' }], function () { msg('Statistik disembunyikan', true); }); };
 
+  var histAll = false, histRows = [];
+  function drawHist() {
+    var box = $('hist');
+    if (!histRows.length) { box.innerHTML = '<div class="empty">Belum ada riwayat</div>'; return; }
+    var rows = histAll ? histRows : histRows.slice(0, 5);
+    box.innerHTML = rows.map(function (e) {
+      var t = new Date(e.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
+      return '<div class="ev" style="padding:6px 9px;font-size:.82rem">' + t + ' - ' + esc(e.note || e.type) + (e.player ? ' (' + esc(e.player) + ')' : '') + ((e.type === 'card' || e.type === 'foul') && e.team ? ' - ' + esc(e.team === 'A' ? cur.team_a : cur.team_b) : '') + (e.minute != null ? ' menit ' + e.minute : '') + '</div>';
+    }).join('') + (histRows.length > 5 ? '<button type="button" id="hist-more" class="btn dark" style="width:100%;min-height:38px;margin-top:4px">' + (histAll ? 'Sembunyikan (tampilkan 5 terbaru)' : 'Lihat semua (' + histRows.length + ')') + '</button>' : '');
+    var mb = $('hist-more'); if (mb) mb.onclick = function () { histAll = !histAll; drawHist(); };
+  }
   function loadHist() {
-    sb.from('match_events').select('*').eq('match_id', cur.id).order('created_at', { ascending: false }).limit(30).then(function (r) {
-      $('hist').innerHTML = (r.data || []).length ? r.data.map(function (e) {
-        var t = new Date(e.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Jakarta' });
-        return '<div class="ev">' + t + ' - ' + esc(e.note || e.type) + (e.player ? ' (' + esc(e.player) + ')' : '') + ((e.type === 'card' || e.type === 'foul') && e.team ? ' - ' + esc(e.team === 'A' ? cur.team_a : cur.team_b) : '') + (e.minute != null ? " menit " + e.minute : '') + ' <small>oleh ' + esc(e.created_by || '') + '</small></div>';
-      }).join('') : '<div class="empty">Belum ada riwayat</div>';
+    var id = cur.id;
+    sb.from('match_events').select('*').eq('match_id', id).order('created_at', { ascending: false }).limit(30).then(function (r) {
+      if (!cur || cur.id !== id) return;
+      histRows = r.data || []; drawHist();
     });
   }
   function addEvent(o, matchId) { o.match_id = matchId || (cur && cur.id); o.created_by = user && user.email; return sb.from('match_events').insert(o).then(function (r) { return r; }); }
