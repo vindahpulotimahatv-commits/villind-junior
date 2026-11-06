@@ -167,22 +167,73 @@
     }).catch(function (e) { fail(e); return false; });
   }
 
-  function goal(team) {
-    if (!cur) return msg('Pilih pertandingan terlebih dahulu.');
-    if (cur.status !== 'LIVE') return msg('Pertandingan harus berstatus LIVE untuk menambah gol. Tekan "Mulai" dulu.');
-    var matchId = cur.id, player = $('pl').value.trim() || null;
-    var min = $('mn').value !== '' ? parseInt($('mn').value, 10) : Math.floor(V.elapsed(cur, Date.now()) / 60) + 1;
+  function doGoal(team, player, minVal) {
+    var matchId = cur.id;
+    var min = minVal !== '' && minVal != null ? parseInt(minVal, 10) : Math.floor(V.elapsed(cur, Date.now()) / 60) + 1;
     var teamName = team === 'A' ? cur.team_a : cur.team_b;
     var patch = team === 'A' ? { score_a: cur.score_a + 1 } : { score_b: cur.score_b + 1 };
     update(patch).then(function (ok) {
       if (ok === false) return;
-      addEvent({ type: 'goal', team: team, player: player, minute: min, note: 'Gol ' + teamName }, matchId).then(function (r) {
+      addEvent({ type: 'goal', team: team, player: player || null, minute: min, note: 'Gol ' + teamName }, matchId).then(function (r) {
         if (r.error) return fail(r.error);
         $('pl').value = ''; $('mn').value = '';
-        msg('Gol dan nama pencetak gol berhasil disimpan.', true);
+        msg(player ? 'Gol ' + player + ' (' + teamName + ') tersimpan.' : 'Gol tersimpan (tanpa nama pencetak gol).', true);
         loadHist();
       });
     });
+  }
+  function goal(team) {
+    if (!cur) return msg('Pilih pertandingan terlebih dahulu.');
+    if (cur.status !== 'LIVE') return msg('Pertandingan harus berstatus LIVE untuk menambah gol. Tekan "Mulai" dulu.');
+    if (document.getElementById('vjt-gm')) return;
+    var teamName = team === 'A' ? cur.team_a : cur.team_b, category = cur.category, known = [];
+    var ov = document.createElement('div'); ov.id = 'vjt-gm';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:99998;background:#000c;display:flex;align-items:center;justify-content:center;padding:14px';
+    var inp = 'width:100%;box-sizing:border-box;padding:12px;border-radius:8px;border:1px solid #405a78;background:#07172b;color:#fff;font-size:1rem;margin-top:4px';
+    var bt = 'border:0;border-radius:8px;padding:13px;font-weight:900;font-size:1rem;cursor:pointer;';
+    ov.innerHTML = '<div style="background:#102744;border:2px solid #e0c47c;border-radius:14px;padding:18px;width:100%;max-width:460px;max-height:92vh;overflow:auto;color:#fff">' +
+      '<div style="font-size:.75rem;letter-spacing:.08em;color:#e0c47c;font-weight:900">GOL UNTUK</div>' +
+      '<div style="font-size:1.4rem;font-weight:900;margin-bottom:10px">' + esc(teamName) + '</div>' +
+      '<div id="gm-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>' +
+      '<label style="font-weight:800;font-size:.85rem">Nama pencetak gol</label>' +
+      '<input id="gm-name" autocomplete="off" placeholder="Ketik nama, atau tekan nama di atas" style="' + inp + '">' +
+      '<label style="font-weight:800;font-size:.85rem;display:block;margin-top:10px">Nomor punggung (boleh kosong)</label>' +
+      '<input id="gm-no" inputmode="numeric" placeholder="Contoh: 10" style="' + inp + '">' +
+      '<div id="gm-err" style="color:#ffb4b4;font-weight:800;margin-top:8px;min-height:1em"></div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">' +
+      '<button type="button" id="gm-ok" style="' + bt + 'background:#1b805c;color:#fff;grid-column:1/-1">Simpan gol</button>' +
+      '<button type="button" id="gm-skip" style="' + bt + 'background:#e0c47c;color:#101a2a">Tanpa nama</button>' +
+      '<button type="button" id="gm-cancel" style="' + bt + 'background:#85263a;color:#fff">Batal</button></div></div>';
+    document.body.appendChild(ov);
+    var g = function (id) { return document.getElementById(id); };
+    function close() { if (ov.parentNode) ov.parentNode.removeChild(ov); }
+    g('gm-name').value = $('pl').value || '';
+    setTimeout(function () { g('gm-name').focus(); }, 50);
+    sb.from('team_players').select('no,name').eq('category', category).eq('team', teamName).then(function (r) {
+      if (r.error) return;
+      known = (r.data || []).slice().sort(function (x, y) { var a = parseInt(x.no, 10), b = parseInt(y.no, 10); if (isNaN(a)) a = 999; if (isNaN(b)) b = 999; return a - b || x.name.localeCompare(y.name, 'id'); });
+      g('gm-chips').innerHTML = known.length ? known.map(function (p, i) { return '<button type="button" data-i="' + i + '" style="border:1px solid #6c5d3e;background:#0a1a2e;color:#fff;border-radius:18px;padding:8px 12px;font-weight:800;cursor:pointer">' + (p.no ? '#' + esc(p.no) + ' ' : '') + esc(p.name) + '</button>'; }).join('') : '<span style="color:#aebbd0;font-size:.85rem">Belum ada daftar pemain tim ini. Ketik nama baru di bawah, otomatis tersimpan.</span>';
+    });
+    g('gm-chips').addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-i]'); if (!b) return;
+      var p = known[parseInt(b.getAttribute('data-i'), 10)]; g('gm-name').value = p.name; g('gm-no').value = p.no || '';
+    });
+    g('gm-cancel').onclick = close;
+    g('gm-skip').onclick = function () { close(); doGoal(team, null, $('mn').value); };
+    function save() {
+      var name = g('gm-name').value.replace(/\s+/g, ' ').trim(), no = g('gm-no').value.trim();
+      if (!name) { g('gm-err').textContent = 'Nama pencetak gol belum diisi. Atau tekan "Tanpa nama".'; return; }
+      g('gm-ok').disabled = true; g('gm-skip').disabled = true;
+      var hit = known.filter(function (p) { return p.name.toLowerCase() === name.toLowerCase(); })[0];
+      var finish = function () { close(); doGoal(team, name, $('mn').value); };
+      if (hit) { name = hit.name; return finish(); }
+      sb.from('team_players').insert({ team: teamName, category: category, no: no || null, name: name }).then(function (r) {
+        if (r.error) toast('Gol tetap disimpan, tetapi nama belum masuk daftar pemain: ' + r.error.message, false); else fillPlayerList();
+        finish();
+      });
+    }
+    g('gm-ok').onclick = save;
+    g('gm-name').addEventListener('keydown', function (e) { if (e.key === 'Enter') save(); });
   }
   $('ga').onclick = function () { goal('A'); };
   $('gb').onclick = function () { goal('B'); };
