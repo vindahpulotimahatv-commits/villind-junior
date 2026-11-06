@@ -3,8 +3,28 @@
   var $ = function (id) { return document.getElementById(id); };
   var matches = [], cur = null, user = null, tick = null;
 
-  function msg(t, ok) { $('msg').innerHTML = t ? '<div class="msg ' + (ok ? 'ok' : 'err') + '">' + esc(t) + '</div>' : ''; if (t && ok) setTimeout(function () { $('msg').innerHTML = ''; }, 3000); }
-  function fail(e) { msg('Gagal: ' + (e && e.message ? e.message : e) + '. Coba lagi. Jika terus gagal, keluar lalu masuk kembali.'); }
+  var toastTimer = null;
+  function toast(t, ok) {
+    var el = document.getElementById('vjt-toast');
+    if (!el) {
+      el = document.createElement('div'); el.id = 'vjt-toast';
+      el.style.cssText = 'position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:99999;max-width:92vw;width:460px;padding:14px 16px;border-radius:12px;font-weight:800;font-size:.95rem;line-height:1.35;box-shadow:0 10px 30px #000a;text-align:center;pointer-events:none';
+      document.body.appendChild(el);
+    }
+    clearTimeout(toastTimer);
+    if (!t) { el.style.display = 'none'; return; }
+    el.textContent = t;
+    el.style.background = ok ? '#14532d' : '#8d1d1a';
+    el.style.color = '#fff';
+    el.style.display = 'block';
+    toastTimer = setTimeout(function () { el.style.display = 'none'; }, ok ? 2500 : 8000);
+  }
+  function msg(t, ok) { $('msg').innerHTML = t ? '<div class="msg ' + (ok ? 'ok' : 'err') + '">' + esc(t) + '</div>' : ''; toast(t, ok); if (t && ok) setTimeout(function () { $('msg').innerHTML = ''; }, 3000); }
+  function fail(e) {
+    var m = e && e.message ? e.message : String(e);
+    var hint = /check constraint|match_events_type_check|period/i.test(m) ? ' PENYEBAB: database belum diperbarui. Jalankan file supabase/update-pelanggaran-kartu.sql di Supabase SQL Editor.' : ' Coba lagi. Jika terus gagal, keluar lalu masuk kembali.';
+    msg('Gagal: ' + m + '.' + hint);
+  }
   function log(action, detail) { sb.from('activity_logs').insert({ actor: user && user.email, action: action, detail: detail }).then(function () {}); }
 
   if (!sb) { $('nocfg').classList.remove('hide'); return; }
