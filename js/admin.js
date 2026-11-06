@@ -46,7 +46,7 @@
   });
   $('out').onclick = function () { sb.auth.signOut().then(function () { user = null; show(false); }); };
 
-  function boot() { reload(); loadSettings(); loadNewsAdmin(); V.loadTeamLogos().then(function () { buildTeamList(); showTeam(); }); sb.channel('vjt-admin').on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, function () { reload(true); }).subscribe(); }
+  function boot() { reload(); loadSettings(); loadNewsAdmin(); V.loadTeamLogos().then(function () { buildTeamList(); showTeam(); drawTeams(); }); sb.channel('vjt-admin').on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, function () { reload(true); }).subscribe(); }
   function reload(keep) {
     sb.from('matches').select('*').order('kickoff').then(function (r) {
       if (r.error) return fail(r.error);
@@ -60,12 +60,17 @@
       pick();
     });
   }
+  function drawTeams() {
+    if (!cur) return;
+    $('b-a').innerHTML = V.logoImg(cur.team_a, 'sm') + '<span>' + esc(cur.team_a) + '</span>';
+    $('b-b').innerHTML = V.logoImg(cur.team_b, 'sm') + '<span>' + esc(cur.team_b) + '</span>';
+  }
   function pick() {
     cur = matches.filter(function (m) { return m.id === $('sel').value; })[0] || null;
     $('ctl').classList.toggle('hide', !cur);
     if (!cur) return;
     $('b-meta').textContent = V.CATEGORY_LABEL[cur.category] + ' - ' + (V.matchGroup(cur) ? 'Grup ' + V.matchGroup(cur) : cur.phase);
-    $('b-a').textContent = cur.team_a; $('b-b').textContent = cur.team_b;
+    drawTeams();
     $('ga').textContent = '+1 ' + cur.team_a; $('gb').textContent = '+1 ' + cur.team_b;
     $('b-score').textContent = cur.score_a + '-' + cur.score_b;
     $('b-status').textContent = V.STATUS_LABEL[cur.status] + (cur.period ? ' - Babak ' + cur.period : '');
