@@ -25,7 +25,7 @@
   });
   $('out').onclick = function () { sb.auth.signOut().then(function () { user = null; show(false); }); };
 
-  function boot() { reload(); loadSettings(); V.loadTeamLogos().then(function () { buildTeamList(); showTeam(); }); sb.channel('vjt-admin').on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, function () { reload(true); }).subscribe(); }
+  function boot() { reload(); loadSettings(); loadNewsAdmin(); V.loadTeamLogos().then(function () { buildTeamList(); showTeam(); }); sb.channel('vjt-admin').on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, function () { reload(true); }).subscribe(); }
   function reload(keep) {
     sb.from('matches').select('*').order('kickoff').then(function (r) {
       if (r.error) return fail(r.error);
@@ -351,4 +351,27 @@
       }).join('');
     });
   }
+
+  /* ---------- berita turnamen: memerlukan supabase/news.sql ---------- */
+  function newsMessage(text, ok) { var el=$('news-admin-msg'); if(el){el.textContent=text;el.style.color=ok?'#80d8ad':'#f0a2aa';} }
+  function loadNewsAdmin() {
+    var box=$('news-admin-list'); if(!box)return;
+    sb.from('news').select('*').order('created_at',{ascending:false}).limit(30).then(function(r){
+      if(r.error){box.innerHTML='<div class="empty">Modul berita belum aktif. Jalankan file supabase/news.sql satu kali.</div>';return;}
+      var rows=r.data||[];box.innerHTML=rows.length?rows.map(function(n){return '<div class="admin-news-row"><div><b>'+esc(n.title)+'</b><small>'+(n.published?'PUBLISHED':'DRAFT')+' · '+esc(n.category||'UPDATE')+'</small></div><div class="admin-news-actions"><button type="button" data-news-toggle="'+n.id+'" data-pub="'+(n.published?'0':'1')+'">'+(n.published?'Tarik':'Publikasikan')+'</button><button type="button" class="danger" data-news-del="'+n.id+'">Hapus</button></div></div>';}).join(''):'<div class="empty">Belum ada berita.</div>';
+    });
+  }
+  function saveNews(published) {
+    var title=$('news-title').value.trim(), body=$('news-body').value.trim();
+    if(!title||!body)return newsMessage('Judul dan isi berita wajib diisi.');
+    var row={title:title,category:$('news-category').value,excerpt:$('news-excerpt').value.trim()||null,body:body,image_url:$('news-image').value.trim()||null,published:published,author:user.email};
+    sb.from('news').insert(row).then(function(r){if(r.error){newsMessage('Gagal menyimpan: '+r.error.message);return;}log('news:create',title);$('news-title').value='';$('news-excerpt').value='';$('news-body').value='';$('news-image').value='';newsMessage(published?'Berita berhasil dipublikasikan.':'Draft berhasil disimpan.',true);loadNewsAdmin();});
+  }
+  if($('news-publish'))$('news-publish').onclick=function(){saveNews(true);};
+  if($('news-draft'))$('news-draft').onclick=function(){saveNews(false);};
+  if($('news-admin-list'))$('news-admin-list').addEventListener('click',function(e){
+    var id=e.target.getAttribute('data-news-toggle'),del=e.target.getAttribute('data-news-del');
+    if(id){var pub=e.target.getAttribute('data-pub')==='1';sb.from('news').update({published:pub}).eq('id',id).then(function(r){if(r.error)return newsMessage('Gagal memperbarui: '+r.error.message);loadNewsAdmin();newsMessage(pub?'Berita dipublikasikan.':'Berita ditarik dari publik.',true);});}
+    if(del){if(!confirm('Hapus berita ini?'))return;sb.from('news').delete().eq('id',del).then(function(r){if(r.error)return newsMessage('Gagal menghapus: '+r.error.message);loadNewsAdmin();newsMessage('Berita dihapus.',true);});}
+  });
 })();

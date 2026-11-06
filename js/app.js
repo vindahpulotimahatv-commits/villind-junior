@@ -107,7 +107,7 @@
           '</section>' +
           '<section class="home-section"><div class="home-section-heading"><h2><span class="heading-icon">▦</span> PERTANDINGAN SELANJUTNYA</h2><a href="#/jadwal">LIHAT SEMUA ›</a></div>' +
             nextBlock + '</section>' +
-          '<div class="home-two-cards"><a href="#/klasemen" class="quick-card"><span>🏆</span><b>KLASEMEN</b><small>U-11 & U-15</small></a><a href="#/info" class="quick-card"><span>📰</span><b>BERITA TURNAMEN</b><small>Informasi & dokumentasi</small></a></div>' +
+          '<div class="home-two-cards"><a href="#/klasemen" class="quick-card"><span>🏆</span><b>KLASEMEN</b><small>U-11 & U-15</small></a><a href="#/scorer" class="quick-card"><span>⚽</span><b>TOP SCORER</b><small>Raja gol turnamen</small></a><a href="#/bracket" class="quick-card"><span>♜</span><b>KNOCKOUT</b><small>Road to the final</small></a><a href="#/news" class="quick-card"><span>📰</span><b>BERITA</b><small>Update & dokumentasi</small></a></div>' +
           (done.length ? '<section class="home-section"><div class="home-section-heading"><h2>HASIL TERBARU</h2><a href="#/jadwal">SEMUA ›</a></div>' + done.map(function(m){return homeMatch(m,false);}).join('') + '</section>' : '') +
           (sa ? '<section class="home-section support-section"><div><span>💛</span><h2>DUKUNG TURNAMEN</h2><p>Bantu kemeriahan Villind Junior Tournament.</p></div><a class="support-btn" href="' + esc(sa) + '" target="_blank" rel="noopener">DUKUNG VIA SAWERIA ↗</a></section>' : '') +
         '</div></div>';
@@ -191,6 +191,30 @@
       }).join('') : '<div class="empty">Belum ada kejadian tercatat</div>';
     });
   }
+  function scorerPage() {
+    view.innerHTML = '<section><div class="wrap"><div class="page-eyebrow">PLAYER PERFORMANCE</div><h2>TOP SCORER</h2><p class="page-lead">Daftar pencetak gol berdasarkan kejadian gol yang dicatat operator.</p><div id="scorer-content"><div class="empty">Memuat statistik pencetak gol...</div></div></div></section>';
+    if (!V.sb) { document.getElementById('scorer-content').innerHTML = '<div class="empty">Top scorer akan tersedia setelah database Supabase terhubung.</div>'; return; }
+    V.sb.from('match_events').select('match_id,team,player,minute').eq('type','goal').then(function(r){
+      var el=document.getElementById('scorer-content'); if(!el)return;
+      if(r.error){el.innerHTML='<div class="empty">Statistik belum dapat dimuat. Pastikan koneksi database aktif.</div>';return;}
+      var matches=state.matches, map={};
+      (r.data||[]).forEach(function(e){ if(!e.player)return; var m=byId(e.match_id); if(!m)return; var team=e.team==='A'?m.team_a:m.team_b; var k=m.category+'|'+team+'|'+e.player; if(!map[k])map[k]={category:m.category,team:team,player:e.player,goals:0}; map[k].goals++; });
+      var rows=Object.keys(map).map(function(k){return map[k];}).sort(function(a,b){return b.goals-a.goals||a.player.localeCompare(b.player);});
+      if(!rows.length){el.innerHTML='<div class="empty">Belum ada gol yang tercatat. Daftar pencetak gol akan muncul otomatis setelah operator mencatat gol.</div>';return;}
+      el.innerHTML=['U11','U15'].map(function(cat){var list=rows.filter(function(x){return x.category===cat;});return '<section class="rank-section"><h3>'+V.CATEGORY_LABEL[cat]+'</h3>'+(list.length?'<div class="rank-list">'+list.map(function(x,i){return '<div class="rank-row"><span class="rank-no">'+(i+1)+'</span><div class="rank-team">'+V.logoImg(x.team,'xs')+'<div><b>'+esc(x.player)+'</b><small>'+esc(x.team)+'</small></div></div><strong class="rank-goals">'+x.goals+' <small>GOL</small></strong></div>';}).join('')+'</div>':'<div class="empty">Belum ada gol tercatat untuk kategori ini.</div>')+'</section>';}).join('');
+    });
+  }
+  function bracketPage() {
+    var phases=['Semi Final','Perebutan Juara 3','Final'];
+    var games=state.matches.filter(function(m){return phases.some(function(p){return String(m.phase||'').toLowerCase().indexOf(p.toLowerCase())>-1;});});
+    view.innerHTML='<section><div class="wrap"><div class="page-eyebrow">ROAD TO THE FINAL</div><h2>KNOCKOUT STAGE</h2><p class="page-lead">Perjalanan menuju gelar juara VILLIND JUNIOR TOURNAMENT.</p>'+['U11','U15'].map(function(cat){var arr=games.filter(function(m){return m.category===cat;});return '<section class="rank-section"><h3>'+V.CATEGORY_LABEL[cat]+'</h3>'+(arr.length?'<div class="bracket-grid">'+arr.map(function(m){var done=m.status==='FULL TIME',aWon=done&&m.score_a>m.score_b,bWon=done&&m.score_b>m.score_a;return '<a class="bracket-match" href="#/match/'+esc(m.id)+'"><div class="bracket-phase">'+esc(m.phase)+'</div><div class="bracket-team '+(aWon?'winner':'')+'">'+V.logoImg(m.team_a,'xs')+'<b>'+esc(m.team_a)+'</b><strong>'+(done?m.score_a:'-')+'</strong></div><div class="bracket-team '+(bWon?'winner':'')+'">'+V.logoImg(m.team_b,'xs')+'<b>'+esc(m.team_b)+'</b><strong>'+(done?m.score_b:'-')+'</strong></div><small>'+V.fmtDate(m.kickoff)+' · '+V.fmtTime(m.kickoff)+'</small></a>';}).join('')+'</div>':'<div class="empty">Bagan '+V.CATEGORY_LABEL[cat]+' akan muncul setelah jadwal fase gugur dimasukkan panitia.</div>')+'</section>';}).join('')+'</div></section>';
+  }
+  function newsPage() {
+    view.innerHTML='<section><div class="wrap"><div class="page-eyebrow">LATEST UPDATES</div><h2>BERITA & UPDATE</h2><p class="page-lead">Informasi resmi, hasil pertandingan dan dokumentasi turnamen.</p><div id="news-content"><div class="empty">Memuat berita...</div></div></div></section>';
+    if(!V.sb){document.getElementById('news-content').innerHTML='<div class="empty">Berita akan ditampilkan setelah database terhubung.</div>';return;}
+    V.sb.from('news').select('*').eq('published',true).order('created_at',{ascending:false}).limit(20).then(function(r){var el=document.getElementById('news-content');if(!el)return;if(r.error){el.innerHTML='<div class="empty">Modul berita belum diaktifkan. Admin dapat mengaktifkannya melalui migrasi database yang disertakan.</div>';return;}var rows=r.data||[];el.innerHTML=rows.length?'<div class="news-list">'+rows.map(function(n){return '<article class="news-card">'+(n.image_url?'<img src="'+esc(n.image_url)+'" alt="">':'<div class="news-placeholder">VJ</div>')+'<div><small>'+esc(n.category||'UPDATE')+' · '+new Date(n.created_at).toLocaleDateString("id-ID")+'</small><h3>'+esc(n.title)+'</h3><p>'+esc(n.excerpt||n.body||'')+'</p></div></article>';}).join('')+'</div>':'<div class="empty">Belum ada berita yang dipublikasikan panitia.</div>';});
+  }
+
   function info() {
     var s = state.settings, yt = s.youtube_url, sa = s.saweria_url, wa = s.whatsapp;
     view.innerHTML = '<section><div class="wrap"><h2>Info</h2>' +
@@ -200,7 +224,7 @@
       (sa ? '<p><a class="btn" href="' + esc(sa) + '" target="_blank" rel="noopener">Dukung lewat Saweria</a></p><br>' : '') +
       (wa ? '<p><a class="btn dark" href="https://wa.me/' + esc(String(wa).replace(/\D/g, '')) + '" target="_blank" rel="noopener">Hubungi panitia (WhatsApp)</a></p>' : '') +
       (!yt && !sa && !wa ? '<p>Tautan akan muncul setelah panitia mengisinya.</p>' : '') + '</div>' +
-      '<div class="panel"><h3>Panitia</h3><p><a href="admin.html">Masuk panitia</a></p></div></div></section>';
+      '<div class="panel"><h3>Competition Center</h3><div class="info-link-grid"><a href="#/scorer">⚽ Top Scorer</a><a href="#/bracket">♜ Knockout Bracket</a><a href="#/news">📰 Berita Turnamen</a><a href="#/jadwal">▦ Jadwal & Hasil</a></div></div>' + '<div class="panel"><h3>Panitia</h3><p><a href="admin.html">Masuk panitia</a></p></div></div></section>';
   }
 
   /* ---------- router ---------- */
@@ -208,7 +232,7 @@
     var h = (location.hash || '#/').slice(2), p = h.split('/');
     var name = p[0] || 'home';
     document.querySelectorAll('nav.bot a').forEach(function (a) { a.classList.toggle('on', a.dataset.r === (name === 'match' ? 'jadwal' : name)); });
-    ({ home: home, jadwal: jadwal, klasemen: klasemen, live: livePage, info: info, match: function () { matchPage(p[1]); } }[name] || home)();
+    ({ home: home, jadwal: jadwal, klasemen: klasemen, live: livePage, info: info, scorer: scorerPage, bracket: bracketPage, news: newsPage, match: function () { matchPage(p[1]); } }[name] || home)();
     if (!keepScroll) window.scrollTo(0, 0);
   }
   document.addEventListener('click', function (e) {

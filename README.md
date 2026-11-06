@@ -74,3 +74,33 @@ Berita, galeri, profil tim/pemain, top scorer, bracket visual, role terpisah (Op
 3. Saat mencatat gol/kartu, kolom nama pemain menampilkan saran dari daftar pemain dua tim yang bertanding.
 4. `overlay.html` kini menampilkan kartu kuning/merah di samping nama tim. Uji tampilan: `overlay.html?demo=1`.
 5. Tab Live di website menampilkan statistik (pelanggaran, kartu kuning, kartu merah) di bawah tiap pertandingan live.
+
+## Upgrade visual VILLIND UEFA-inspired (November 2026)
+
+Pembaruan tampilan ini bersifat additive dan mempertahankan alur lama: splash video, jadwal, detail pertandingan, live score, klasemen, lineup, logo tim, daftar pemain, panel operator, statistik vMix, overlay, PWA dan koneksi Supabase.
+
+### Halaman publik baru
+- `#/scorer`: Top Scorer dihitung dari event `goal` yang dicatat operator. Nama pemain perlu diisi ketika gol dicatat.
+- `#/bracket`: menampilkan pertandingan fase gugur berdasarkan nilai `phase` pada tabel `matches` (Semi Final, Final, Perebutan Juara 3).
+- `#/news`: menampilkan berita yang berstatus published.
+
+### Mengaktifkan modul berita
+1. Buka Supabase > SQL Editor.
+2. Jalankan isi `supabase/news.sql` satu kali. Skrip ini hanya menambahkan tabel `news` dan policy terkait; tabel pertandingan dan event lama tidak dihapus atau di-reset.
+3. Masuk ke `admin.html`, gunakan panel **Berita & Pengumuman** untuk menyimpan draft atau mempublikasikan berita.
+4. Berita yang dipublikasikan muncul di halaman `#/news`.
+
+### Catatan data dan kompatibilitas
+- Tidak menjalankan seed ulang dan tidak mengubah isi tabel `matches`, `match_events`, `settings`, `team_logos`, atau `team_players`.
+- Top scorer menghitung event gol aktif yang ada di `match_events`; jika sebuah gol dibatalkan melalui fungsi undo lama yang menghapus event gol, hitungan otomatis menyesuaikan.
+- Bracket memakai jadwal fase gugur yang sudah ditambahkan melalui panel admin. Sistem tidak mengarang tim yang lolos dari grup.
+- Modul berita menggunakan tabel baru `news`; sebelum migrasi dijalankan, halaman menampilkan pesan bahwa modul belum aktif.
+- `sw.js` memakai cache key baru agar perangkat mengambil CSS/JS versi upgrade.
+- Logo VILLIND dan logo tim tetap menggunakan aset repository yang sudah ada.
+
+### Pengujian sebelum publikasi
+1. Uji `index.html` tanpa Supabase: splash, jadwal demo, navigasi dan halaman info.
+2. Setelah Supabase tersambung, uji live score, event gol, kartu, klasemen, top scorer dan realtime.
+3. Jalankan `supabase/news.sql`, lalu uji draft/publish/tarik berita dari admin.
+4. Uji `overlay.html`, `stats.html`, `kontrol.html`, login admin dan upload logo tim.
+5. Uji tampilan HP dan desktop serta instalasi PWA.

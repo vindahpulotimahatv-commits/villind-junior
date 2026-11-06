@@ -22,6 +22,7 @@
   </form>
 
   <div id="app" class="hide">
+    <div class="admin-welcome"><div><div class="page-eyebrow">OFFICIAL TOURNAMENT CONTROL</div><h1 class="disp">VILLIND CONTROL CENTER</h1><p>Kelola kompetisi, pertandingan, pemain dan siaran dari satu tempat.</p></div><div class="admin-shortcuts"><a href="index.html#/scorer">TOP SCORER</a><a href="index.html#/bracket">BRACKET</a><a href="index.html#/news">BERITA PUBLIK</a><a href="overlay.html" target="_blank">SCORE OVERLAY</a></div></div>
     <div class="panel">
       <div style="display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0">Pilih pertandingan</h3><button class="btn" id="out" style="min-height:36px;padding:6px 12px">Keluar</button></div>
       <label for="sel">Pertandingan</label><select id="sel"></select>
@@ -111,6 +112,17 @@
       </div>
     </div>
 
+    <div class="panel" id="news-admin-panel">
+      <h3>Berita & Pengumuman</h3>
+      <div id="news-admin-msg" class="hint">Publikasikan informasi turnamen ke halaman publik.</div>
+      <label for="news-title">Judul berita</label><input id="news-title" maxlength="140" placeholder="Contoh: Hasil pertandingan hari ini">
+      <label for="news-category">Kategori</label><select id="news-category"><option>UPDATE</option><option>HASIL PERTANDINGAN</option><option>PENGUMUMAN</option><option>DOKUMENTASI</option></select>
+      <label for="news-excerpt">Ringkasan</label><textarea id="news-excerpt" rows="2" maxlength="280" placeholder="Ringkasan singkat untuk kartu berita"></textarea>
+      <label for="news-body">Isi berita</label><textarea id="news-body" rows="5" placeholder="Tulis informasi lengkap..."></textarea>
+      <label for="news-image">URL foto (opsional)</label><input id="news-image" type="url" placeholder="https://...">
+      <div class="btns"><button class="btn dark" id="news-publish" type="button">Publikasikan berita</button><button class="btn" id="news-draft" type="button">Simpan sebagai draft</button></div>
+      <h3 style="margin-top:18px">Daftar berita</h3><div id="news-admin-list"><div class="empty">Memuat daftar berita...</div></div>
+    </div>
     <div class="panel">
       <h3>Pengaturan website</h3>
       <label for="s-yt">Tautan YouTube Live (atau ID video)</label><input id="s-yt" placeholder="https://www.youtube.com/watch?v=...">
