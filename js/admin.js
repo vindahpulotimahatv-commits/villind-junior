@@ -222,7 +222,7 @@
     sb.from('team_players').select('no,name').eq('category', category).eq('team', teamName).then(function (r) {
       if (r.error) return;
       known = (r.data || []).slice().sort(function (x, y) { var a = parseInt(x.no, 10), b = parseInt(y.no, 10); if (isNaN(a)) a = 999; if (isNaN(b)) b = 999; return a - b || x.name.localeCompare(y.name, 'id'); });
-      g('gm-chips').innerHTML = known.length ? known.map(function (p, i) { return '<button type="button" data-i="' + i + '" style="border:1px solid #6c5d3e;background:#0a1a2e;color:#fff;border-radius:18px;padding:8px 12px;font-weight:800;cursor:pointer">' + (p.no ? '#' + esc(p.no) + ' ' : '') + esc(p.name) + '</button>'; }).join('') : '<span style="color:#aebbd0;font-size:.85rem">Belum ada daftar pemain tim ini. Ketik nama baru di bawah, otomatis tersimpan.</span>';
+      g('gm-chips').innerHTML = known.length ? known.map(function (p, i) { return '<button type="button" data-i="' + i + '" style="border:1px solid #6c5d3e;background:#0a1a2e;color:#fff;border-radius:22px;padding:5px 12px 5px 5px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:7px">' + (V.playerPhoto(teamName, p.name) ? '<img src="' + V.playerPhoto(teamName, p.name) + '" alt="" style="width:30px;height:30px;border-radius:50%;object-fit:cover;pointer-events:none">' : '') + (p.no ? '#' + esc(p.no) + ' ' : '') + esc(p.name) + '</button>'; }).join('') : '<span style="color:#aebbd0;font-size:.85rem">Belum ada daftar pemain tim ini. Ketik nama baru di bawah, otomatis tersimpan.</span>';
     });
     g('gm-chips').addEventListener('click', function (e) {
       var b = e.target.closest('button[data-i]'); if (!b) return;
@@ -370,7 +370,7 @@
   }
   function drawPlayers() {
     $('tm-players').innerHTML = players.length ? sortPlayers(players).map(function (p) {
-      return '<div class="prow"><span class="pn' + (p.no ? '' : ' none') + '">' + (p.no ? esc(p.no) : '-') + '</span><span class="pt">' + esc(p.name) + '</span>' +
+      return '<div class="prow"><span class="pn' + (p.no ? '' : ' none') + '">' + (p.no ? esc(p.no) : '-') + '</span>' + (V.playerPhoto($('tm-sel').value, p.name) ? '<img class="pface" src="' + V.playerPhoto($('tm-sel').value, p.name) + '" alt="">' : '') + '<span class="pt">' + esc(p.name) + '</span>' +
         '<button type="button" data-ed="' + esc(p.id) + '">Ubah</button><button type="button" class="del" data-del="' + esc(p.id) + '">Hapus</button></div>';
     }).join('') : '<div class="empty">Belum ada pemain untuk tim dan kategori ini</div>';
   }

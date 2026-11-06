@@ -97,7 +97,9 @@
         var d = document.createElement('div');
         d.className = 'lu-p ' + s.toLowerCase() + (i === 0 ? ' gk' : '') + (first ? ' pre' : '');
         d.style.left = '50%'; d.style.top = '50%';
-        d.innerHTML = '<span class="c"><b>' + esc(p.no || '') + '</b></span><span class="nm">' + esc(short(p.name)) + '</span>';
+        var ph = V.playerPhoto(T[s].name, p.name);
+        if (ph) d.className += ' ph';
+        d.innerHTML = '<span class="c"' + (ph ? ' style="background:url(' + ph + ') center/cover #fff"' : '') + '><b>' + esc(p.no || '') + '</b></span><span class="nm">' + esc(short(p.name)) + '</span>';
         dots.appendChild(d); els[s].push(d);
       });
     });
@@ -121,7 +123,8 @@
         }).join('') : '<span class="lu-chip on">' + t.form + '</span>';
         var pts = layout(t.size, t.form, s);
         var row = function (p, i, bench) {
-          return '<div class="lu-row"><b>' + esc(p.no || '-') + '</b><span>' + esc(p.name) + '</span><i>' + (bench ? 'CAD' : pts[i].pos) + '</i></div>';
+          var ph = V.playerPhoto(t.name, p.name);
+          return '<div class="lu-row"><b>' + esc(p.no || '-') + '</b>' + (ph ? '<img class="lface" src="' + ph + '" alt="" loading="lazy">' : '') + '<span>' + esc(p.name) + '</span><i>' + (bench ? 'CAD' : pts[i].pos) + '</i></div>';
         };
         el.querySelector('.lu-list[data-l="' + s + '"]').innerHTML =
           '<div class="lu-lh">' + V.logoImg(t.name, 'xs') + '<b>' + esc(t.name) + '</b><small>' + t.form + '</small></div>' +

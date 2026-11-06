@@ -37,6 +37,16 @@
     return u ? '<img class="tlogo ' + (cls || '') + '" src="' + u + '" alt="Logo ' + String(name).replace(/"/g, '') + '" loading="lazy">' : '';
   }
 
+  // Foto pemain (bulat, hasil crop wajah). Cocok berdasarkan nomor RT tim dan nama depan pemain.
+  var PLAYER_PHOTOS = { rt008: ['abas', 'aldo', 'alvin', 'asensio', 'ata', 'azzam', 'bahdim', 'bastian', 'bima', 'boby', 'daffa', 'fathan', 'gibran', 'gozi', 'hafiz', 'jojo', 'kahfi', 'kalandra', 'ozil', 'putra', 'rayhan', 'reifan', 'tegar', 'vino'] };
+  function playerPhoto(team, name) {
+    var m = String(team || '').trim().toLowerCase().match(/^rt\s*0*(\d+)/); if (!m) return null;
+    var k = 'rt' + ('00' + m[1]).slice(-3), list = PLAYER_PHOTOS[k]; if (!list) return null;
+    var words = String(name || '').toLowerCase().split(/\s+/);
+    for (var i = 0; i < words.length; i++) { var w = words[i].replace(/[^a-z]/g, ''); if (w && list.indexOf(w) > -1) return 'icons/players/' + k + '/' + w + '.png'; }
+    return null;
+  }
+
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -101,7 +111,7 @@
     } catch (e) { return Promise.resolve(); }
   }
 
-  var api = { loadTeamLogos: loadTeamLogos, logoOverrides: logoOverrides, nameKey: nameKey, teamLogo: teamLogo, logoImg: logoImg, GROUPS: GROUPS, groupOf: groupOf, matchGroup: matchGroup, CATEGORY_LABEL: CATEGORY_LABEL, STATUS_LABEL: STATUS_LABEL, esc: esc, elapsed: elapsed, fmtClock: fmtClock,
+  var api = { playerPhoto: playerPhoto, loadTeamLogos: loadTeamLogos, logoOverrides: logoOverrides, nameKey: nameKey, teamLogo: teamLogo, logoImg: logoImg, GROUPS: GROUPS, groupOf: groupOf, matchGroup: matchGroup, CATEGORY_LABEL: CATEGORY_LABEL, STATUS_LABEL: STATUS_LABEL, esc: esc, elapsed: elapsed, fmtClock: fmtClock,
     fmtDate: fmtDate, fmtTime: fmtTime, dayKey: dayKey, youtubeEmbed: youtubeEmbed, standings: standings };
 
   if (typeof window !== 'undefined') {
