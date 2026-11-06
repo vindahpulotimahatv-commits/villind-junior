@@ -85,9 +85,11 @@
     });
   }
   function discipline(type, team, label) {
-    if (cur.status !== 'LIVE' && !(type === 'card' && cur.status === 'HALF TIME')) return msg('Pertandingan harus berstatus LIVE. Tekan "Mulai" dulu.');
+    if (!cur) return msg('Pilih pertandingan terlebih dahulu.');
+    if (cur.status !== 'LIVE' && cur.status !== 'HALF TIME') return msg('Pertandingan harus berstatus LIVE atau HALF TIME. Tekan "Mulai" dulu.');
+    var matchId = cur.id;
     var min = $('mn').value !== '' ? parseInt($('mn').value, 10) : Math.floor(V.elapsed(cur, Date.now()) / 60) + 1;
-    addEvent({ type: type, team: team, player: $('pl').value || null, minute: min, period: cur.period || null, note: label }).then(function (r) {
+    addEvent({ type: type, team: team, player: $('pl').value || null, minute: min, period: cur.period || null, note: label }, matchId).then(function (r) {
       if (r.error) return fail(r.error);
       log('match:' + cur.id, label + ' ' + (team === 'A' ? cur.team_a : cur.team_b));
       $('pl').value = ''; $('mn').value = ''; msg(label + ' tersimpan', true); loadHist(); loadStats();
@@ -133,7 +135,7 @@
       }).join('') : '<div class="empty">Belum ada riwayat</div>';
     });
   }
-  function addEvent(o) { o.match_id = cur.id; o.created_by = user.email; return sb.from('match_events').insert(o).then(function (r) { return r; }); }
+  function addEvent(o, matchId) { o.match_id = matchId || (cur && cur.id); o.created_by = user && user.email; return sb.from('match_events').insert(o).then(function (r) { return r; }); }
   function update(patch, evNote) {
     patch.updated_at = new Date().toISOString();
     return sb.from('matches').update(patch).eq('id', cur.id).select().then(function (r) {
@@ -141,18 +143,25 @@
       Object.assign(cur, r.data[0]);
       if (evNote) addEvent({ type: 'status', note: evNote });
       log('match:' + cur.id, evNote || JSON.stringify(patch));
-      reload(true); msg('Tersimpan', true);
+      reload(true); msg('Tersimpan', true); return true;
     }).catch(function (e) { fail(e); return false; });
   }
 
   function goal(team) {
+    if (!cur) return msg('Pilih pertandingan terlebih dahulu.');
     if (cur.status !== 'LIVE') return msg('Pertandingan harus berstatus LIVE untuk menambah gol. Tekan "Mulai" dulu.');
+    var matchId = cur.id, player = $('pl').value.trim() || null;
     var min = $('mn').value !== '' ? parseInt($('mn').value, 10) : Math.floor(V.elapsed(cur, Date.now()) / 60) + 1;
+    var teamName = team === 'A' ? cur.team_a : cur.team_b;
     var patch = team === 'A' ? { score_a: cur.score_a + 1 } : { score_b: cur.score_b + 1 };
     update(patch).then(function (ok) {
       if (ok === false) return;
-      addEvent({ type: 'goal', team: team, player: $('pl').value || null, minute: min, note: 'Gol ' + (team === 'A' ? cur.team_a : cur.team_b) });
-      $('pl').value = ''; $('mn').value = '';
+      addEvent({ type: 'goal', team: team, player: player, minute: min, note: 'Gol ' + teamName }, matchId).then(function (r) {
+        if (r.error) return fail(r.error);
+        $('pl').value = ''; $('mn').value = '';
+        msg('Gol dan nama pencetak gol berhasil disimpan.', true);
+        loadHist();
+      });
     });
   }
   $('ga').onclick = function () { goal('A'); };

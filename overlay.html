@@ -5,6 +5,9 @@
 html,body{margin:0;background:transparent;overflow:hidden;font-family:"Barlow Condensed","Arial Narrow",Arial,sans-serif}
 #bar{position:fixed;left:40px;bottom:40px;display:none;align-items:stretch;height:112px;color:#fff;font-weight:800;text-transform:uppercase;box-shadow:0 4px 18px rgba(0,0,0,.45);border-radius:10px;overflow:hidden}
 #bar.on{display:flex}
+#goal-line{position:fixed;left:40px;bottom:160px;display:none;align-items:center;gap:12px;padding:12px 20px;background:rgba(16,25,35,.94);border-left:7px solid #F6B83F;border-radius:7px;color:#fff;font-size:27px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;box-shadow:0 4px 18px #0008}
+#goal-line.on{display:flex}
+#goal-line small{color:#F6B83F;font-size:18px}
 .cat{background:#F6B83F;color:#101923;padding:0 18px;display:flex;align-items:center;font-size:34px}
 .tm{background:#123D38;padding:0 26px;display:flex;align-items:center;font-size:40px;min-width:230px;justify-content:center;white-space:nowrap}
 .sc{background:#101923;color:#F6B83F;padding:0 22px;display:flex;align-items:center;font-size:56px;min-width:60px;justify-content:center}
@@ -18,13 +21,15 @@ html,body{margin:0;background:transparent;overflow:hidden;font-family:"Barlow Co
 @keyframes cdpop{0%{transform:scale(.2) rotate(-14deg);opacity:0}55%{transform:scale(1.55) rotate(4deg);opacity:1}100%{transform:scale(1) rotate(0)}}
 </style></head><body>
 <div id="bar"><div class="cat" id="c"></div><div class="tm" id="a"></div><div class="sc" id="sa"></div><div class="sc" id="sb">0</div><div class="tm" id="b"></div><div class="ck"><span id="t">00:00</span><small id="s"></small></div></div>
+<div id="goal-line"><small>GOAL</small><span id="goal-player"></span><small id="goal-minute"></small></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="js/config.js"></script>
 <script src="js/core.js"></script>
 <script>
-// Tambahkan ?kategori=U11 atau ?kategori=U15 pada alamat untuk memilih satu kategori.
+// Tambahkan ?kategori=U11 atau ?kategori=U15 untuk memilih kategori.
+// Gunakan ?match=UUID untuk mengunci overlay ke satu pertandingan tertentu.
 // Tambahkan ?demo=1 untuk uji tampilan dengan data contoh (tanpa pertandingan live).
-var V = window.VJT, qs = new URLSearchParams(location.search), cat = qs.get('kategori'), demo = qs.get('demo') === '1', cur = null, cards = { A: { y: 0, r: 0 }, B: { y: 0, r: 0 } }, prevKey = null, prevCards = {};
+var V = window.VJT, qs = new URLSearchParams(location.search), cat = qs.get('kategori'), matchIdParam = qs.get('match'), demo = qs.get('demo') === '1', cur = null, cards = { A: { y: 0, r: 0 }, B: { y: 0, r: 0 } }, prevKey = null, prevCards = {};
 var $ = function (i) { return document.getElementById(i); };
 function cdHtml(team, type, n) {
   if (!n) return '';
@@ -43,21 +48,34 @@ function load() {
   }
   if (!V.sb) return;
   V.sb.from('matches').select('*').in("status", ["LIVE", "HALF TIME"]).order('kickoff').then(function (r) {
-    var d = (r.data || []).filter(function (m) { return !cat || m.category === cat; });
+    var d = (r.data || []).filter(function (m) { return (!cat || m.category === cat) && (!matchIdParam || m.id === matchIdParam); });
     cur = d[0] || null;
     if (!cur) { cards = { A: { y: 0, r: 0 }, B: { y: 0, r: 0 } }; return draw(); }
     var id = cur.id;
-    V.sb.from('match_events').select('team,note').eq('match_id', id).eq('type', 'card').then(function (er) {
-      var c = { A: { y: 0, r: 0 }, B: { y: 0, r: 0 } };
-      (er.data || []).forEach(function (e) { var t = c[e.team]; if (!t) return; if (/merah/i.test(e.note || '')) t.r++; else t.y++; });
-      if (cur && cur.id === id) cards = c;
+    V.sb.from('match_events').select('type,team,note,player,minute,created_at').eq('match_id', id).in('type', ['card','goal']).order('created_at', { ascending: false }).then(function (er) {
+      if (!cur || cur.id !== id) return;
+      var c = { A: { y: 0, r: 0 }, B: { y: 0, r: 0 } }, goals = [];
+      (er.data || []).forEach(function (e) {
+        if (e.type === 'card') {
+          var t = c[e.team]; if (!t) return;
+          if (/merah/i.test(e.note || '')) t.r++; else t.y++;
+        } else if (e.type === 'goal') goals.push(e);
+      });
+      cards = c;
+      var latest = goals[0], line = $('goal-line');
+      if (latest) {
+        var teamName = latest.team === 'A' ? cur.team_a : cur.team_b;
+        $('goal-player').textContent = (latest.player || teamName) + ' · ' + teamName;
+        $('goal-minute').textContent = latest.minute != null ? latest.minute + "'" : '';
+        line.classList.add('on');
+      } else line.classList.remove('on');
       draw();
     });
   });
 }
 function draw() {
   $('bar').classList.toggle('on', !!cur);
-  if (!cur) { prevKey = null; prevCards = {}; return; }
+  if (!cur) { prevKey = null; prevCards = {}; $('goal-line').classList.remove('on'); return; }
   if (prevKey !== cur.id) { prevKey = cur.id; prevCards = {}; }
   $('c').textContent = V.CATEGORY_LABEL[cur.category] || cur.category;
   $('a').innerHTML = V.logoImg(cur.team_a, 'ov') + '<span>' + V.esc(cur.team_a) + '</span>' + cdBox('A');

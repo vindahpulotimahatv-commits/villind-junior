@@ -24,7 +24,7 @@
   <div id="app" class="hide">
     <div class="admin-welcome"><div><div class="page-eyebrow">OFFICIAL TOURNAMENT CONTROL</div><h1 class="disp">VILLIND CONTROL CENTER</h1><p>Kelola kompetisi, pertandingan, pemain dan siaran dari satu tempat.</p></div><div class="admin-shortcuts"><a href="index.html#/scorer">TOP SCORER</a><a href="index.html#/bracket">BRACKET</a><a href="index.html#/news">BERITA PUBLIK</a><a href="overlay.html" target="_blank">SCORE OVERLAY</a></div></div>
     <div class="panel">
-      <div style="display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0">Pilih pertandingan</h3><button class="btn" id="out" style="min-height:36px;padding:6px 12px">Keluar</button></div>
+      <div style="display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0">Pilih pertandingan</h3><button class="btn" type="button" id="out" style="min-height:36px;padding:6px 12px">Keluar</button></div>
       <label for="sel">Pertandingan</label><select id="sel"></select>
     </div>
 
@@ -43,18 +43,18 @@
       <div class="panel">
         <h3>Gol</h3>
         <div class="btns">
-          <button class="btn goal" id="ga"></button><button class="btn goal" id="gb"></button>
-          <button class="btn red" id="undo" style="grid-column:1/-1">Batalkan gol terakhir</button>
+          <button class="btn goal" type="button" id="ga"></button><button class="btn goal" type="button" id="gb"></button>
+          <button class="btn red" type="button" id="undo" style="grid-column:1/-1">Batalkan gol terakhir</button>
         </div>
       </div>
       <div class="panel">
         <h3>Pelanggaran dan kartu</h3>
         <div id="disc" class="disc"></div>
         <div class="btns">
-          <button class="btn foul" id="fa"></button><button class="btn foul" id="fb"></button>
-          <button class="btn ycard" id="ya"></button><button class="btn ycard" id="yb"></button>
-          <button class="btn rcard" id="ra"></button><button class="btn rcard" id="rb"></button>
-          <button class="btn red" id="undo-d" style="grid-column:1/-1">Batalkan pelanggaran / kartu terakhir</button>
+          <button class="btn foul" type="button" id="fa"></button><button class="btn foul" type="button" id="fb"></button>
+          <button class="btn ycard" type="button" id="ya"></button><button class="btn ycard" type="button" id="yb"></button>
+          <button class="btn rcard" type="button" id="ra"></button><button class="btn rcard" type="button" id="rb"></button>
+          <button class="btn red" type="button" id="undo-d" style="grid-column:1/-1">Batalkan pelanggaran / kartu terakhir</button>
         </div>
         <p class="hint">Angka pelanggaran berwarna merah = 5 atau lebih dalam satu babak. Kartu kuning kedua dicatat sebagai kartu merah secara manual.</p>
       </div>
@@ -63,19 +63,19 @@
         <p class="hint">Di vMix tambahkan Web Browser Input dengan alamat <b>alamat-website/stats.html</b> (ukuran 1920x1080). Tombol di bawah menampilkan atau menyembunyikan statistik pertandingan yang sedang dipilih di sini.</p>
         <div id="stats-state" style="font-weight:800;margin:6px 0"></div>
         <div class="btns">
-          <button class="btn dark" id="stats-show">Tampilkan statistik</button>
-          <button class="btn" id="stats-hide">Sembunyikan</button>
+          <button class="btn dark" type="button" id="stats-show">Tampilkan statistik</button>
+          <button class="btn" type="button" id="stats-hide">Sembunyikan</button>
         </div>
       </div>
       <div class="panel">
         <h3>Jalannya pertandingan</h3>
         <div class="btns">
-          <button class="btn dark" id="st-start">Mulai (Babak 1)</button>
-          <button class="btn dark" id="st-ht">Half Time</button>
-          <button class="btn dark" id="st-2">Mulai Babak 2</button>
-          <button class="btn red" id="st-ft">Akhiri (Full Time)</button>
-          <button class="btn" id="st-pp">Tunda</button>
-          <button class="btn" id="st-reset">Kembalikan ke Akan Datang</button>
+          <button class="btn dark" type="button" id="st-start">Mulai (Babak 1)</button>
+          <button class="btn dark" type="button" id="st-ht">Half Time</button>
+          <button class="btn dark" type="button" id="st-2">Mulai Babak 2</button>
+          <button class="btn red" type="button" id="st-ft">Akhiri (Full Time)</button>
+          <button class="btn" type="button" id="st-pp">Tunda</button>
+          <button class="btn" type="button" id="st-reset">Kembalikan ke Akan Datang</button>
         </div>
       </div>
       <div class="panel"><h3>Riwayat</h3><div id="hist"></div></div>
@@ -87,7 +87,7 @@
       <label for="n-ph">Babak</label><select id="n-ph"><option>Semi Final</option><option>Final</option><option>Perebutan Juara 3</option></select>
       <label for="n-a">Tim A</label><input id="n-a"><label for="n-b">Tim B</label><input id="n-b">
       <label for="n-t">Tanggal dan jam (WIB)</label><input id="n-t" type="datetime-local">
-      <div class="btns"><button class="btn dark" id="n-add" style="grid-column:1/-1">Simpan pertandingan</button></div>
+      <div class="btns"><button class="btn dark" type="button" id="n-add" style="grid-column:1/-1">Simpan pertandingan</button></div>
     </div>
 
     <div class="panel">
@@ -128,7 +128,7 @@
       <label for="s-yt">Tautan YouTube Live (atau ID video)</label><input id="s-yt" placeholder="https://www.youtube.com/watch?v=...">
       <label for="s-sa">Tautan Saweria</label><input id="s-sa" placeholder="https://saweria.co/...">
       <label for="s-wa">Nomor WhatsApp panitia</label><input id="s-wa" placeholder="62812xxxxxxx" inputmode="tel">
-      <div class="btns"><button class="btn dark" id="s-save" style="grid-column:1/-1">Simpan pengaturan</button></div>
+      <div class="btns"><button class="btn dark" type="button" id="s-save" style="grid-column:1/-1">Simpan pengaturan</button></div>
     </div>
   </div>
 </main>
