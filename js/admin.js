@@ -27,6 +27,7 @@
   }
   function log(action, detail) { sb.from('activity_logs').insert({ actor: user && user.email, action: action, detail: detail }).then(function () {}); }
 
+  var _pp = $('pl') && $('pl').closest('.panel'); if (_pp) _pp.style.display = 'none';
   if (!sb) { $('nocfg').classList.remove('hide'); return; }
 
   function show(loggedIn) { $('login').classList.toggle('hide', loggedIn); $('app').classList.toggle('hide', !loggedIn); }
@@ -107,13 +108,17 @@
   function discipline(type, team, label) {
     if (!cur) return msg('Pilih pertandingan terlebih dahulu.');
     if (cur.status !== 'LIVE' && cur.status !== 'HALF TIME') return msg('Pertandingan harus berstatus LIVE atau HALF TIME. Tekan "Mulai" dulu.');
-    var matchId = cur.id;
-    var min = $('mn').value !== '' ? parseInt($('mn').value, 10) : Math.floor(V.elapsed(cur, Date.now()) / 60) + 1;
-    addEvent({ type: type, team: team, player: $('pl').value || null, minute: min, period: cur.period || null, note: label }, matchId).then(function (r) {
-      if (r.error) return fail(r.error);
-      log('match:' + cur.id, label + ' ' + (team === 'A' ? cur.team_a : cur.team_b));
-      $('pl').value = ''; $('mn').value = ''; msg(label + ' tersimpan', true); loadHist(); loadStats();
-    });
+    function save(player) {
+      var matchId = cur.id;
+      var min = Math.floor(V.elapsed(cur, Date.now()) / 60) + 1;
+      addEvent({ type: type, team: team, player: player || null, minute: min, period: cur.period || null, note: label }, matchId).then(function (r) {
+        if (r.error) return fail(r.error);
+        log('match:' + cur.id, label + ' ' + (team === 'A' ? cur.team_a : cur.team_b) + (player ? ' - ' + player : ''));
+        msg(label + ' ' + (team === 'A' ? cur.team_a : cur.team_b) + (player ? ' (' + player + ')' : '') + ' tersimpan', true); loadHist(); loadStats();
+      });
+    }
+    if (type === 'foul') return save(null);
+    askPlayer(team, /merah/i.test(label) ? 'KARTU MERAH UNTUK' : 'KARTU KUNING UNTUK', 'Simpan', save);
   }
   $('fa').onclick = function () { discipline('foul', 'A', 'Pelanggaran'); };
   $('fb').onclick = function () { discipline('foul', 'B', 'Pelanggaran'); };
@@ -195,6 +200,9 @@
   function goal(team) {
     if (!cur) return msg('Pilih pertandingan terlebih dahulu.');
     if (cur.status !== 'LIVE') return msg('Pertandingan harus berstatus LIVE untuk menambah gol. Tekan "Mulai" dulu.');
+    askPlayer(team, 'GOL UNTUK', 'Simpan gol', function (name) { doGoal(team, name, ''); });
+  }
+  function askPlayer(team, heading, okLabel, cb) {
     if (document.getElementById('vjt-gm')) return;
     var teamName = team === 'A' ? cur.team_a : cur.team_b, category = cur.category, known = [];
     var ov = document.createElement('div'); ov.id = 'vjt-gm';
@@ -202,7 +210,7 @@
     var inp = 'width:100%;box-sizing:border-box;padding:12px;border-radius:8px;border:1px solid #405a78;background:#07172b;color:#fff;font-size:1rem;margin-top:4px';
     var bt = 'border:0;border-radius:8px;padding:13px;font-weight:900;font-size:1rem;cursor:pointer;';
     ov.innerHTML = '<div style="background:#102744;border:2px solid #e0c47c;border-radius:14px;padding:18px;width:100%;max-width:460px;max-height:92vh;overflow:auto;color:#fff">' +
-      '<div style="font-size:.75rem;letter-spacing:.08em;color:#e0c47c;font-weight:900">GOL UNTUK</div>' +
+      '<div style="font-size:.75rem;letter-spacing:.08em;color:#e0c47c;font-weight:900">' + esc(heading) + '</div>' +
       '<div style="font-size:1.4rem;font-weight:900;margin-bottom:10px">' + esc(teamName) + '</div>' +
       '<div id="gm-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>' +
       '<label style="font-weight:800;font-size:.85rem">Nama pencetak gol</label>' +
@@ -211,7 +219,7 @@
       '<input id="gm-no" inputmode="numeric" placeholder="Contoh: 10" style="' + inp + '">' +
       '<div id="gm-err" style="color:#ffb4b4;font-weight:800;margin-top:8px;min-height:1em"></div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">' +
-      '<button type="button" id="gm-ok" style="' + bt + 'background:#1b805c;color:#fff;grid-column:1/-1">Simpan gol</button>' +
+      '<button type="button" id="gm-ok" style="' + bt + 'background:#1b805c;color:#fff;grid-column:1/-1">' + esc(okLabel) + '</button>' +
       '<button type="button" id="gm-skip" style="' + bt + 'background:#e0c47c;color:#101a2a">Tanpa nama</button>' +
       '<button type="button" id="gm-cancel" style="' + bt + 'background:#85263a;color:#fff">Batal</button></div></div>';
     document.body.appendChild(ov);
@@ -229,13 +237,13 @@
       var p = known[parseInt(b.getAttribute('data-i'), 10)]; g('gm-name').value = p.name; g('gm-no').value = p.no || '';
     });
     g('gm-cancel').onclick = close;
-    g('gm-skip').onclick = function () { close(); doGoal(team, null, $('mn').value); };
+    g('gm-skip').onclick = function () { close(); cb(null); };
     function save() {
       var name = g('gm-name').value.replace(/\s+/g, ' ').trim(), no = g('gm-no').value.trim();
       if (!name) { g('gm-err').textContent = 'Nama pencetak gol belum diisi. Atau tekan "Tanpa nama".'; return; }
       g('gm-ok').disabled = true; g('gm-skip').disabled = true;
       var hit = known.filter(function (p) { return p.name.toLowerCase() === name.toLowerCase(); })[0];
-      var finish = function () { close(); doGoal(team, name, $('mn').value); };
+      var finish = function () { close(); cb(name); };
       if (hit) { name = hit.name; return finish(); }
       sb.from('team_players').insert({ team: teamName, category: category, no: no || null, name: name }).then(function (r) {
         if (r.error) toast('Gol tetap disimpan, tetapi nama belum masuk daftar pemain: ' + r.error.message, false); else fillPlayerList();
