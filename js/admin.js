@@ -51,6 +51,7 @@
     sb.from('matches').select('*').order('kickoff').then(function (r) {
       if (r.error) return fail(r.error);
       matches = r.data;
+      loadCardRecap();
       var prev = $('sel').value;
       $('sel').innerHTML = '<option value="">- pilih -</option>' + matches.map(function (m) {
         return '<option value="' + m.id + '">' + V.fmtDate(m.kickoff).replace(/^\w+, /, '') + ' ' + V.fmtTime(m.kickoff).replace(' WIB', '') + ' | ' + V.CATEGORY_LABEL[m.category] + (V.matchGroup(m) ? ' Grup ' + V.matchGroup(m) : '') + ' | ' + esc(m.team_a) + ' vs ' + esc(m.team_b) + ' | ' + m.status + '</option>';
@@ -173,6 +174,32 @@
     sb.from('match_events').select('*').eq('match_id', id).order('created_at', { ascending: false }).limit(30).then(function (r) {
       if (!cur || cur.id !== id) return;
       histRows = r.data || []; drawHist();
+    });
+  }
+  function loadCardRecap() {
+    var box = $('kartu-admin'); if (!box) return;
+    sb.from('match_events').select('id,match_id,team,player,minute,note,created_at').eq('type', 'card').order('created_at', { ascending: false }).limit(200).then(function (r) {
+      if (r.error) { box.innerHTML = '<div class="empty">Gagal memuat: ' + esc(r.error.message) + '</div>'; return; }
+      var rows = (r.data || []).slice().sort(function (a, b) { return (a.player ? 1 : 0) - (b.player ? 1 : 0); });
+      if (!rows.length) { box.innerHTML = '<div class="empty">Belum ada kartu tercatat</div>'; return; }
+      box.innerHTML = rows.map(function (e) {
+        var m = matches.filter(function (x) { return x.id === e.match_id; })[0];
+        var red = /merah/i.test(e.note || ''), tn = m ? (e.team === 'A' ? m.team_a : m.team_b) : '';
+        return '<div class="ev" style="padding:8px 10px;font-size:.85rem"><div style="font-weight:800">' + (m ? V.fmtDate(m.kickoff).replace(/^\w+, /, '') + ' | ' + esc(m.team_a) + ' vs ' + esc(m.team_b) : 'Pertandingan') + '</div>' +
+          '<div style="margin:3px 0">' + (red ? '🟥 Merah' : '🟨 Kuning') + ' - ' + esc(tn) + (e.minute != null ? ' - menit ' + e.minute : '') + '</div>' +
+          '<div style="display:flex;gap:6px"><input data-kid="' + esc(e.id) + '" value="' + esc(e.player || '') + '" placeholder="Nama pemain" style="flex:1;min-width:0;padding:9px;border-radius:8px;border:1px solid #405a78;background:#07172b;color:#fff">' +
+          '<button type="button" class="btn dark" data-ksave="' + esc(e.id) + '" style="min-height:0;padding:9px 14px">Simpan</button></div></div>';
+      }).join('');
+      Array.prototype.forEach.call(box.querySelectorAll('[data-ksave]'), function (b) {
+        b.onclick = function () {
+          var id = b.getAttribute('data-ksave'), inp = box.querySelector('[data-kid="' + id + '"]'), name = inp.value.trim();
+          sb.from('match_events').update({ player: name || null }).eq('id', id).select().then(function (u) {
+            if (u.error) return fail(u.error);
+            if (!u.data || !u.data.length) return msg('Gagal menyimpan. Coba keluar lalu masuk kembali.');
+            msg('Nama pemain tersimpan', true); loadCardRecap(); if (cur) { loadHist(); }
+          });
+        };
+      });
     });
   }
   function addEvent(o, matchId) { o.match_id = matchId || (cur && cur.id); o.created_by = user && user.email; return sb.from('match_events').insert(o).then(function (r) { return r; }); }

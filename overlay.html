@@ -7,6 +7,12 @@ html,body{margin:0;background:transparent;overflow:hidden;font-family:"Barlow Co
 #bar.on{display:flex}
 #goal-line{position:fixed;left:40px;bottom:160px;display:none;align-items:center;gap:12px;padding:12px 20px;background:rgba(16,25,35,.94);border-left:7px solid #F6B83F;border-radius:7px;color:#fff;font-size:27px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;box-shadow:0 4px 18px #0008}
 #goal-line.on{display:flex}
+#card-line{position:fixed;left:40px;bottom:225px;display:none;align-items:center;gap:12px;padding:12px 20px;background:rgba(16,25,35,.94);border-left:7px solid #f7c92c;border-radius:7px;color:#fff;font-size:27px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;box-shadow:0 4px 18px #0008}
+#card-line.on{display:flex}
+#card-line.red{border-left-color:#e0232a}
+#card-line .ci{display:inline-block;width:20px;height:28px;border-radius:3px;background:#f7c92c}
+#card-line.red .ci{background:#e0232a}
+#card-line small{color:#F6B83F;font-size:18px}
 #goal-line small{color:#F6B83F;font-size:18px}
 .cat{background:#F6B83F;color:#101923;padding:0 18px;display:flex;align-items:center;font-size:34px}
 .tm{background:#123D38;padding:0 26px;display:flex;align-items:center;font-size:40px;min-width:230px;justify-content:center;white-space:nowrap}
@@ -21,6 +27,7 @@ html,body{margin:0;background:transparent;overflow:hidden;font-family:"Barlow Co
 @keyframes cdpop{0%{transform:scale(.2) rotate(-14deg);opacity:0}55%{transform:scale(1.55) rotate(4deg);opacity:1}100%{transform:scale(1) rotate(0)}}
 </style></head><body>
 <div id="bar"><div class="cat" id="c"></div><div class="tm" id="a"></div><div class="sc" id="sa"></div><div class="sc" id="sb">0</div><div class="tm" id="b"></div><div class="ck"><span id="t">00:00</span><small id="s"></small></div></div>
+<div id="card-line"><span class="ci"></span><span id="card-player"></span><small id="card-minute"></small></div>
 <div id="goal-line"><small>GOAL</small><span id="goal-player"></span><small id="goal-minute"></small></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="js/config.js"></script>
@@ -54,14 +61,23 @@ function load() {
     var id = cur.id;
     V.sb.from('match_events').select('type,team,note,player,minute,created_at').eq('match_id', id).in('type', ['card','goal']).order('created_at', { ascending: false }).then(function (er) {
       if (!cur || cur.id !== id) return;
-      var c = { A: { y: 0, r: 0 }, B: { y: 0, r: 0 } }, goals = [];
+      var c = { A: { y: 0, r: 0 }, B: { y: 0, r: 0 } }, goals = [], lastCard = null;
       (er.data || []).forEach(function (e) {
         if (e.type === 'card') {
           var t = c[e.team]; if (!t) return;
+          if (!lastCard) lastCard = e;
           if (/merah/i.test(e.note || '')) t.r++; else t.y++;
         } else if (e.type === 'goal') goals.push(e);
       });
       cards = c;
+      var cl = $('card-line');
+      if (lastCard) {
+        var ctn = lastCard.team === 'A' ? cur.team_a : cur.team_b;
+        $('card-player').textContent = (lastCard.player || 'Tanpa nama') + ' · ' + ctn;
+        $('card-minute').textContent = lastCard.minute != null ? lastCard.minute + "'" : '';
+        cl.classList.toggle('red', /merah/i.test(lastCard.note || ''));
+        cl.classList.add('on');
+      } else cl.classList.remove('on');
       var latest = goals[0], line = $('goal-line');
       if (latest) {
         var teamName = latest.team === 'A' ? cur.team_a : cur.team_b;
@@ -75,7 +91,7 @@ function load() {
 }
 function draw() {
   $('bar').classList.toggle('on', !!cur);
-  if (!cur) { prevKey = null; prevCards = {}; $('goal-line').classList.remove('on'); return; }
+  if (!cur) { prevKey = null; prevCards = {}; $('goal-line').classList.remove('on'); $('card-line').classList.remove('on'); return; }
   if (prevKey !== cur.id) { prevKey = cur.id; prevCards = {}; }
   $('c').textContent = V.CATEGORY_LABEL[cur.category] || cur.category;
   $('a').innerHTML = V.logoImg(cur.team_a, 'ov') + '<span>' + V.esc(cur.team_a) + '</span>' + cdBox('A');

@@ -176,12 +176,18 @@
       '<div class="grid"><div class="tm">' + V.logoImg(m.team_a, 'lg') + '<div>' + esc(m.team_a) + '</div></div><div class="big">' + (started ? m.score_a + '-' + m.score_b : 'VS') + '</div><div class="tm">' + V.logoImg(m.team_b, 'lg') + '<div>' + esc(m.team_b) + '</div></div></div>' +
       (m.status === 'LIVE' ? '<div class="clock" data-clock="' + esc(m.id) + '">' + V.fmtClock(V.elapsed(m, Date.now())) + '</div>' : '') +
       '<div>' + pill(m) + '</div><div style="margin-top:8px;font-size:.9rem;opacity:.85">' + V.fmtDate(m.kickoff) + ', ' + V.fmtTime(m.kickoff) + '</div></div>' +
-      '<div id="mstats"></div><div id="lineup"></div><h3 class="disp" style="font-size:1.3rem;color:var(--gold);margin-bottom:8px">Kejadian pertandingan</h3><div id="evs"><div class="empty">Memuat...</div></div></div></section>';
+      '<div id="mstats"></div><div id="mcards"></div><div id="lineup"></div><h3 class="disp" style="font-size:1.3rem;color:var(--gold);margin-bottom:8px">Kejadian pertandingan</h3><div id="evs"><div class="empty">Memuat...</div></div></div></section>';
     if (V.renderLineup) V.renderLineup(document.getElementById('lineup'), m);
     loadEvents(id).then(function (evs) {
       var el = document.getElementById('evs'); if (!el) return;
       var ms = document.getElementById('mstats');
       if (ms && evs.some(function (e) { return e.type === 'foul' || e.type === 'card'; })) ms.innerHTML = discHtml(discCount(evs));
+      var cardEvs = evs.filter(function (e) { return e.type === 'card'; });
+      var cb = document.getElementById('mcards');
+      if (cb) cb.innerHTML = cardEvs.length ? '<h3 class="disp" style="font-size:1.3rem;color:var(--gold);margin-bottom:8px">Pemain menerima kartu</h3>' + cardEvs.map(function (e) {
+        var red = /merah/i.test(e.note || ''), tn = e.team === 'A' ? m.team_a : m.team_b;
+        return '<div class="ev"><span style="display:inline-block;width:14px;height:20px;border-radius:3px;vertical-align:-4px;margin-right:8px;background:' + (red ? '#e0232a' : '#f7c92c') + '"></span><b>' + esc(e.player || 'Tanpa nama') + '</b> &middot; ' + esc(tn) + (e.minute != null ? ' &middot; menit ' + e.minute : '') + ' &middot; ' + (red ? 'Kartu merah' : 'Kartu kuning') + '</div>';
+      }).join('') + '<div style="height:12px"></div>' : '';
       var goals = evs.filter(function (e) { return e.type === 'goal' || e.type === 'card'; });
       // gol yang dibatalkan (undo) dihapus dari daftar oleh operator, jadi cukup tampilkan sisanya
       el.innerHTML = goals.length ? goals.map(function (e) {
@@ -194,14 +200,53 @@
   function scorerPage() {
     view.innerHTML = '<section><div class="wrap"><div class="page-eyebrow">PLAYER PERFORMANCE</div><h2>TOP SCORER</h2><p class="page-lead">Daftar pencetak gol berdasarkan kejadian gol yang dicatat operator.</p><div id="scorer-content"><div class="empty">Memuat statistik pencetak gol...</div></div></div></section>';
     if (!V.sb) { document.getElementById('scorer-content').innerHTML = '<div class="empty">Top scorer akan tersedia setelah database Supabase terhubung.</div>'; return; }
-    V.sb.from('match_events').select('match_id,team,player,minute').eq('type','goal').then(function(r){
+    V.sb.from('match_events').select('match_id,team,player,minute,type,note').in('type',['goal','card']).then(function(r){
       var el=document.getElementById('scorer-content'); if(!el)return;
       if(r.error){el.innerHTML='<div class="empty">Statistik belum dapat dimuat. Pastikan koneksi database aktif.</div>';return;}
       var matches=state.matches, map={};
-      (r.data||[]).forEach(function(e){ if(!e.player)return; var m=byId(e.match_id); if(!m)return; var team=e.team==='A'?m.team_a:m.team_b; var k=m.category+'|'+team+'|'+e.player; if(!map[k])map[k]={category:m.category,team:team,player:e.player,goals:0}; map[k].goals++; });
+      var cmap={};
+      (r.data||[]).forEach(function(e){ if(e.type!=='card'||!e.player)return; var m=byId(e.match_id); if(!m)return; var team=e.team==='A'?m.team_a:m.team_b; var k=m.category+'|'+team+'|'+e.player; if(!cmap[k])cmap[k]={category:m.category,team:team,player:e.player,y:0,r:0}; if(/merah/i.test(e.note||''))cmap[k].r++; else cmap[k].y++; });
+      var crows=Object.keys(cmap).map(function(k){return cmap[k];}).sort(function(a,b){return b.r-a.r||b.y-a.y||a.player.localeCompare(b.player);});
+      function cardSection(){ return '<section class="rank-section"><h3>KARTU PEMAIN</h3>'+(crows.length?'<div class="rank-list">'+crows.map(function(x){return '<div class="rank-row"><div class="rank-team">'+V.logoImg(x.team,'xs')+'<div><b>'+esc(x.player)+'</b><small>'+esc(x.team)+' &middot; '+V.CATEGORY_LABEL[x.category]+'</small></div></div><strong class="rank-goals"><span style="display:inline-block;width:12px;height:17px;border-radius:2px;background:#f7c92c;vertical-align:-2px"></span> '+x.y+' &nbsp;<span style="display:inline-block;width:12px;height:17px;border-radius:2px;background:#e0232a;vertical-align:-2px"></span> '+x.r+'</strong></div>';}).join('')+'</div>':'<div class="empty">Belum ada kartu yang tercatat dengan nama pemain.</div>')+'</section>'; }
+      (r.data||[]).forEach(function(e){ if(e.type!=='goal')return; if(!e.player)return; var m=byId(e.match_id); if(!m)return; var team=e.team==='A'?m.team_a:m.team_b; var k=m.category+'|'+team+'|'+e.player; if(!map[k])map[k]={category:m.category,team:team,player:e.player,goals:0}; map[k].goals++; });
       var rows=Object.keys(map).map(function(k){return map[k];}).sort(function(a,b){return b.goals-a.goals||a.player.localeCompare(b.player);});
-      if(!rows.length){el.innerHTML='<div class="empty">Belum ada gol yang tercatat. Daftar pencetak gol akan muncul otomatis setelah operator mencatat gol.</div>';return;}
-      el.innerHTML=['U11','U15'].map(function(cat){var list=rows.filter(function(x){return x.category===cat;});return '<section class="rank-section"><h3>'+V.CATEGORY_LABEL[cat]+'</h3>'+(list.length?'<div class="rank-list">'+list.map(function(x,i){return '<div class="rank-row"><span class="rank-no">'+(i+1)+'</span><div class="rank-team">'+V.logoImg(x.team,'xs')+'<div><b>'+esc(x.player)+'</b><small>'+esc(x.team)+'</small></div></div><strong class="rank-goals">'+x.goals+' <small>GOL</small></strong></div>';}).join('')+'</div>':'<div class="empty">Belum ada gol tercatat untuk kategori ini.</div>')+'</section>';}).join('');
+      if(!rows.length){el.innerHTML='<div class="empty">Belum ada gol yang tercatat. Daftar pencetak gol akan muncul otomatis setelah operator mencatat gol.</div>'+cardSection();return;}
+      el.innerHTML=['U11','U15'].map(function(cat){var list=rows.filter(function(x){return x.category===cat;});return '<section class="rank-section"><h3>'+V.CATEGORY_LABEL[cat]+'</h3>'+(list.length?'<div class="rank-list">'+list.map(function(x,i){return '<div class="rank-row"><span class="rank-no">'+(i+1)+'</span><div class="rank-team">'+V.logoImg(x.team,'xs')+'<div><b>'+esc(x.player)+'</b><small>'+esc(x.team)+'</small></div></div><strong class="rank-goals">'+x.goals+' <small>GOL</small></strong></div>';}).join('')+'</div>':'<div class="empty">Belum ada gol tercatat untuk kategori ini.</div>')+'</section>';}).join('')+cardSection();
+    });
+  }
+  function kartuPage() {
+    view.innerHTML = '<section><div class="wrap"><div class="page-eyebrow">DISIPLIN PEMAIN</div><h2>REKAP KARTU</h2><p class="page-lead">Daftar pemain yang menerima kartu kuning dan merah, termasuk dari pertandingan yang sudah selesai.</p><div id="kartu-content"><div class="empty">Memuat rekap kartu...</div></div></div></section>';
+    if (!V.sb) { document.getElementById('kartu-content').innerHTML = '<div class="empty">Rekap kartu akan tersedia setelah database Supabase terhubung.</div>'; return; }
+    V.sb.from('match_events').select('match_id,team,player,minute,note,created_at').eq('type', 'card').order('created_at').then(function (r) {
+      var el = document.getElementById('kartu-content'); if (!el) return;
+      if (r.error) { el.innerHTML = '<div class="empty">Rekap belum dapat dimuat. Pastikan koneksi database aktif.</div>'; return; }
+      var items = [];
+      (r.data || []).forEach(function (e) {
+        var m = byId(e.match_id); if (!m) return;
+        items.push({ m: m, team: e.team === 'A' ? m.team_a : m.team_b, player: e.player || '', minute: e.minute, red: /merah/i.test(e.note || '') });
+      });
+      if (!items.length) { el.innerHTML = '<div class="empty">Belum ada kartu yang tercatat.</div>'; return; }
+      function ic(red) { return '<span style="display:inline-block;width:12px;height:17px;border-radius:2px;vertical-align:-2px;background:' + (red ? '#e0232a' : '#f7c92c') + '"></span>'; }
+      el.innerHTML = ['U11', 'U15'].map(function (cat) {
+        var list = items.filter(function (x) { return x.m.category === cat; });
+        var h = '<section class="rank-section"><h3>' + V.CATEGORY_LABEL[cat] + '</h3>';
+        if (!list.length) return h + '<div class="empty">Belum ada kartu untuk kategori ini.</div></section>';
+        var map = {};
+        list.forEach(function (x) { if (!x.player) return; var k = x.team + '|' + x.player; if (!map[k]) map[k] = { team: x.team, player: x.player, y: 0, r: 0 }; if (x.red) map[k].r++; else map[k].y++; });
+        var sum = Object.keys(map).map(function (k) { return map[k]; }).sort(function (a, b) { return b.r - a.r || b.y - a.y || a.player.localeCompare(b.player); });
+        var noName = list.filter(function (x) { return !x.player; }).length;
+        h += '<div class="rank-list">' + sum.map(function (x) {
+          return '<div class="rank-row"><div class="rank-team">' + V.logoImg(x.team, 'xs') + '<div><b>' + esc(x.player) + '</b><small>' + esc(x.team) + '</small></div></div><strong class="rank-goals">' + ic(false) + ' ' + x.y + ' &nbsp;' + ic(true) + ' ' + x.r + '</strong></div>';
+        }).join('') + (noName ? '<div class="rank-row"><div class="rank-team"><div><b>Tanpa nama</b><small>Kartu yang dicatat tanpa nama pemain</small></div></div><strong class="rank-goals">' + noName + '</strong></div>' : '') + '</div>';
+        var byM = {}, order = [];
+        list.forEach(function (x) { if (!byM[x.m.id]) { byM[x.m.id] = []; order.push(x.m); } byM[x.m.id].push(x); });
+        order.sort(function (a, b) { return String(b.kickoff).localeCompare(String(a.kickoff)); });
+        h += '<h3 style="margin-top:18px;font-size:1.15rem">Per pertandingan</h3>' + order.map(function (m) {
+          return '<div class="panel" style="margin-bottom:10px"><div style="font-weight:800;margin-bottom:6px">' + V.fmtDate(m.kickoff) + ' &middot; ' + esc(m.team_a) + ' ' + (m.status === 'UPCOMING' ? 'vs' : m.score_a + '-' + m.score_b) + ' ' + esc(m.team_b) + '</div>' +
+            byM[m.id].map(function (x) { return '<div class="ev">' + ic(x.red) + ' <b>' + esc(x.player || 'Tanpa nama') + '</b> &middot; ' + esc(x.team) + (x.minute != null ? ' &middot; menit ' + x.minute : '') + ' &middot; ' + (x.red ? 'Kartu merah' : 'Kartu kuning') + '</div>'; }).join('') + '</div>';
+        }).join('');
+        return h + '</section>';
+      }).join('');
     });
   }
   function bracketPage() {
@@ -224,7 +269,7 @@
       (sa ? '<p><a class="btn" href="' + esc(sa) + '" target="_blank" rel="noopener">Dukung lewat Saweria</a></p><br>' : '') +
       (wa ? '<p><a class="btn dark" href="https://wa.me/' + esc(String(wa).replace(/\D/g, '')) + '" target="_blank" rel="noopener">Hubungi panitia (WhatsApp)</a></p>' : '') +
       (!yt && !sa && !wa ? '<p>Tautan akan muncul setelah panitia mengisinya.</p>' : '') + '</div>' +
-      '<div class="panel"><h3>Competition Center</h3><div class="info-link-grid"><a href="#/scorer">⚽ Top Scorer</a><a href="#/bracket">♜ Knockout Bracket</a><a href="#/news">📰 Berita Turnamen</a><a href="#/jadwal">▦ Jadwal & Hasil</a></div></div>' + '<div class="panel"><h3>Panitia</h3><p><a href="admin.html">Masuk panitia</a></p></div></div></section>';
+      '<div class="panel"><h3>Competition Center</h3><div class="info-link-grid"><a href="#/scorer">⚽ Top Scorer</a><a href="#/kartu">🟨 Rekap Kartu</a><a href="#/bracket">♜ Knockout Bracket</a><a href="#/news">📰 Berita Turnamen</a><a href="#/jadwal">▦ Jadwal & Hasil</a></div></div>' + '<div class="panel"><h3>Panitia</h3><p><a href="admin.html">Masuk panitia</a></p></div></div></section>';
   }
 
   /* ---------- router ---------- */
@@ -232,7 +277,7 @@
     var h = (location.hash || '#/').slice(2), p = h.split('/');
     var name = p[0] || 'home';
     document.querySelectorAll('nav.bot a').forEach(function (a) { a.classList.toggle('on', a.dataset.r === (name === 'match' ? 'jadwal' : name)); });
-    ({ home: home, jadwal: jadwal, klasemen: klasemen, live: livePage, info: info, scorer: scorerPage, bracket: bracketPage, news: newsPage, match: function () { matchPage(p[1]); } }[name] || home)();
+    ({ home: home, jadwal: jadwal, klasemen: klasemen, live: livePage, info: info, scorer: scorerPage, kartu: kartuPage, bracket: bracketPage, news: newsPage, match: function () { matchPage(p[1]); } }[name] || home)();
     if (!keepScroll) window.scrollTo(0, 0);
   }
   document.addEventListener('click', function (e) {
