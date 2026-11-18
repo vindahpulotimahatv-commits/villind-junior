@@ -309,6 +309,19 @@
   $('st-pp').onclick = function () { if (confirm('Tunda pertandingan ini?')) update({ status: 'POSTPONED', clock_started_at: null }, 'Pertandingan ditunda'); };
   $('st-reset').onclick = function () { if (confirm('Kembalikan ke Akan Datang? Skor dan timer akan di-nol-kan.')) update({ status: 'UPCOMING', period: 0, score_a: 0, score_b: 0, clock_base: 0, clock_started_at: null }, 'Dikembalikan ke Akan Datang (skor di-reset)'); };
 
+  $('st-del').onclick = function () {
+    if (!cur) return msg('Pilih pertandingan terlebih dahulu.');
+    var nm = cur.team_a + ' vs ' + cur.team_b + ' (' + (V.matchGroup(cur) ? 'Grup ' + V.matchGroup(cur) : cur.phase) + ')';
+    if (!confirm('HAPUS PERMANEN pertandingan ini?\n' + nm + '\n\nSemua gol, kartu, dan catatan pertandingan ini ikut terhapus.')) return;
+    if (cur.status !== 'UPCOMING' && !confirm('Pertandingan ini sudah berstatus ' + (V.STATUS_LABEL[cur.status] || cur.status) + '. Yakin tetap dihapus?')) return;
+    var id = cur.id;
+    sb.from('matches').delete().eq('id', id).select().then(function (r) {
+      if (r.error) return fail(r.error);
+      if (!r.data || !r.data.length) return msg('Gagal menghapus. Coba keluar lalu masuk kembali.');
+      log('match:delete', nm); cur = null; $('sel').value = ''; reload(false); pick(); msg('Pertandingan dihapus', true);
+    });
+  };
+
   $('n-add').onclick = function () {
     if (!$('n-a').value.trim() || !$('n-b').value.trim() || !$('n-t').value) return msg('Isi nama kedua tim dan tanggal jam.');
     sb.from('matches').insert({ category: $('n-cat').value, phase: $('n-ph').value, team_a: $('n-a').value.trim(), team_b: $('n-b').value.trim(), kickoff: $('n-t').value + ':00+07:00' }).then(function (r) {
