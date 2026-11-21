@@ -188,7 +188,8 @@
         return '<div class="ev" style="padding:8px 10px;font-size:.85rem"><div style="font-weight:800">' + (m ? V.fmtDate(m.kickoff).replace(/^\w+, /, '') + ' | ' + esc(m.team_a) + ' vs ' + esc(m.team_b) : 'Pertandingan') + '</div>' +
           '<div style="margin:3px 0">' + (red ? '🟥 Merah' : '🟨 Kuning') + ' - ' + esc(tn) + (e.minute != null ? ' - menit ' + e.minute : '') + '</div>' +
           '<div style="display:flex;gap:6px"><input data-kid="' + esc(e.id) + '" value="' + esc(e.player || '') + '" placeholder="Nama pemain" style="flex:1;min-width:0;padding:9px;border-radius:8px;border:1px solid #405a78;background:#07172b;color:#fff">' +
-          '<button type="button" class="btn dark" data-ksave="' + esc(e.id) + '" style="min-height:0;padding:9px 14px">Simpan</button></div></div>';
+          '<button type="button" class="btn dark" data-ksave="' + esc(e.id) + '" style="min-height:0;padding:9px 14px">Simpan</button>' +
+          '<button type="button" class="btn red" data-kdel="' + esc(e.id) + '" style="min-height:0;padding:9px 14px">Hapus</button></div></div>';
       }).join('');
       Array.prototype.forEach.call(box.querySelectorAll('[data-ksave]'), function (b) {
         b.onclick = function () {
@@ -197,6 +198,22 @@
             if (u.error) return fail(u.error);
             if (!u.data || !u.data.length) return msg('Gagal menyimpan. Coba keluar lalu masuk kembali.');
             msg('Nama pemain tersimpan', true); loadCardRecap(); if (cur) { loadHist(); }
+          });
+        };
+      });
+      Array.prototype.forEach.call(box.querySelectorAll('[data-kdel]'), function (b) {
+        b.onclick = function () {
+          var id = b.getAttribute('data-kdel');
+          var e = rows.filter(function (x) { return x.id === id; })[0] || {};
+          var m = matches.filter(function (x) { return x.id === e.match_id; })[0];
+          var red = /merah/i.test(e.note || ''), tn = m ? (e.team === 'A' ? m.team_a : m.team_b) : '';
+          var ket = (red ? 'Kartu Merah' : 'Kartu Kuning') + (tn ? ' untuk ' + tn : '') + (e.player ? ' (' + e.player + ')' : '') + (m ? '\n' + m.team_a + ' vs ' + m.team_b : '');
+          if (!confirm('HAPUS kartu ini?\n' + ket + '\n\nKartu hilang dari statistik, overlay, dan halaman pertandingan.')) return;
+          sb.from('match_events').delete().eq('id', id).select().then(function (d) {
+            if (d.error) return fail(d.error);
+            if (!d.data || !d.data.length) return msg('Gagal menghapus. Coba keluar lalu masuk kembali.');
+            log('card:delete', ket.replace(/\n/g, ' | '));
+            msg('Kartu dihapus', true); loadCardRecap(); if (cur) { loadHist(); loadStats(); }
           });
         };
       });
