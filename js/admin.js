@@ -339,8 +339,20 @@
     });
   };
 
+  // Tim A / Tim B: pilihan otomatis dari daftar tim resmi (sesuai kategori), bukan ketik manual.
+  function fillNewTeams() {
+    var cat = $('n-cat').value, names = [];
+    Object.keys(V.GROUPS[cat] || {}).forEach(function (g) { V.GROUPS[cat][g].forEach(function (n) { if (names.indexOf(n) < 0) names.push(n); }); });
+    names.sort(function (a, b) { return a.localeCompare(b, 'id', { numeric: true }); });
+    var opts = '<option value="">- pilih tim -</option>' + names.map(function (n) { return '<option value="' + esc(n) + '">' + esc(n) + '</option>'; }).join('');
+    ['n-a', 'n-b'].forEach(function (id) { $(id).innerHTML = opts; });
+  }
+  $('n-cat').onchange = fillNewTeams;
+  fillNewTeams();
+
   $('n-add').onclick = function () {
-    if (!$('n-a').value.trim() || !$('n-b').value.trim() || !$('n-t').value) return msg('Isi nama kedua tim dan tanggal jam.');
+    if (!$('n-a').value || !$('n-b').value || !$('n-t').value) return msg('Pilih kedua tim dan isi tanggal jam.');
+    if ($('n-a').value === $('n-b').value) return msg('Tim A dan Tim B tidak boleh sama.');
     sb.from('matches').insert({ category: $('n-cat').value, phase: $('n-ph').value, team_a: $('n-a').value.trim(), team_b: $('n-b').value.trim(), kickoff: $('n-t').value + ':00+07:00' }).then(function (r) {
       if (r.error) return fail(r.error);
       log('match:add', $('n-a').value + ' vs ' + $('n-b').value); ['n-a', 'n-b', 'n-t'].forEach(function (i) { $(i).value = ''; }); reload(true); msg('Pertandingan ditambahkan', true);
